@@ -16,6 +16,7 @@ export const serviceNameMap = {
 	models: "cline.ModelsService",
 	slash: "cline.SlashService",
 	ui: "cline.UiService",
+	oca: "cline.OcaService",
 	// Add new services here - no other code changes needed!
 }
 

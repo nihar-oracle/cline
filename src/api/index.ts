@@ -29,6 +29,7 @@ import { SapAiCoreHandler } from "./providers/sapaicore"
 import { ClaudeCodeHandler } from "./providers/claude-code"
 import { MoonshotHandler } from "./providers/moonshot"
 import { GroqHandler } from "./providers/groq"
+import { OcaHandler } from "./providers/oca"
 
 export interface ApiHandler {
 	createMessage(systemPrompt: string, messages: Anthropic.Messages.MessageParam[]): ApiStream
@@ -244,6 +245,8 @@ function createHandlerForProvider(apiProvider: string | undefined, options: Omit
 				apiModelId: options.apiModelId,
 				thinkingBudgetTokens: options.thinkingBudgetTokens,
 			})
+		case "oca":
+			return new OcaHandler(options)
 		default:
 			return new AnthropicHandler({
 				apiKey: options.apiKey,

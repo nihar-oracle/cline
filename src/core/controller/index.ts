@@ -55,6 +55,8 @@ export class Controller {
 	accountService: ClineAccountService
 	authService: AuthService
 	latestAnnouncementId = "june-25-2025_16:11:00" // update to some unique identifier when we add a new announcement
+	refreshTimer?: NodeJS.Timeout
+	isRefreshing = false
 
 	constructor(
 		readonly context: vscode.ExtensionContext,
@@ -333,6 +335,10 @@ export class Controller {
 				case "requesty":
 					await updateGlobalState(this.context, "previousModeModelId", apiConfiguration.requestyModelId)
 					await updateGlobalState(this.context, "previousModeModelInfo", apiConfiguration.requestyModelInfo)
+					break
+				case "oca":
+					await updateGlobalState(this.context, "previousModeModelId", apiConfiguration.ocaLiteLlmModelId)
+					await updateGlobalState(this.context, "previousModeModelInfo", apiConfiguration.ocaLiteLlmModelInfo)
 					break
 				case "sapaicore":
 					await updateGlobalState(this.context, "previousModeModelId", apiConfiguration.apiModelId)
@@ -1121,4 +1127,5 @@ Commit message:`
 			)
 		}
 	}
+	// dev
 }

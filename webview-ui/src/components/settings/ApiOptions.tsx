@@ -36,6 +36,7 @@ import { VSCodeLmProvider } from "./providers/VSCodeLmProvider"
 import { LMStudioProvider } from "./providers/LMStudioProvider"
 import { useApiConfigurationHandlers } from "./utils/useApiConfigurationHandlers"
 import { GroqProvider } from "./providers/GroqProvider"
+import { OcaProvider } from "./providers/OcaProvider"
 
 interface ApiOptionsProps {
 	showSubmitButton?: boolean
@@ -165,6 +166,7 @@ const ApiOptions = ({ showModelOptions, apiErrorMessage, modelIdErrorMessage, is
 					<VSCodeOption value="sambanova">SambaNova</VSCodeOption>
 					<VSCodeOption value="cerebras">Cerebras</VSCodeOption>
 					<VSCodeOption value="sapaicore">SAP AI Core</VSCodeOption>
+					<VSCodeOption value="oca">Oracle Code Assist</VSCodeOption>
 				</VSCodeDropdown>
 			</DropdownContainer>
 
@@ -276,6 +278,8 @@ const ApiOptions = ({ showModelOptions, apiErrorMessage, modelIdErrorMessage, is
 			{apiConfiguration && selectedProvider === "sapaicore" && (
 				<SapAiCoreProvider showModelOptions={showModelOptions} isPopup={isPopup} />
 			)}
+
+			{apiConfiguration && selectedProvider === "oca" && <OcaProvider isPopup={isPopup} />}
 
 			{apiErrorMessage && (
 				<p

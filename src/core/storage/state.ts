@@ -13,6 +13,7 @@ import { UserInfo } from "@shared/UserInfo"
 import { ClineRulesToggles } from "@shared/cline-rules"
 import { DEFAULT_MCP_DISPLAY_MODE, McpDisplayMode } from "@shared/McpDisplayMode"
 import { migrateEnableCheckpointsSetting, migrateMcpMarketplaceEnableSetting } from "./state-migrations"
+import type { OcaLiteLLMModelInfo } from "@/shared/proto/models"
 /*
 	Storage
 	https://dev.to/kompotkot/how-to-use-secretstorage-in-your-vscode-extensions-2hco
@@ -191,6 +192,10 @@ export async function getAllExtensionState(context: vscode.ExtensionContext) {
 		claudeCodePath,
 		groqModelId,
 		groqModelInfo,
+		ocaLiteLlmBaseUrl,
+		ocaAccessToken,
+		ocaAccessTokenExpiresAt,
+		ocaAccessTokenSub,
 	] = await Promise.all([
 		getGlobalState(context, "isNewUser") as Promise<boolean | undefined>,
 		getGlobalState(context, "welcomeViewCompleted") as Promise<boolean | undefined>,
@@ -271,6 +276,10 @@ export async function getAllExtensionState(context: vscode.ExtensionContext) {
 		getGlobalState(context, "claudeCodePath") as Promise<string | undefined>,
 		getGlobalState(context, "groqModelId") as Promise<string | undefined>,
 		getGlobalState(context, "groqModelInfo") as Promise<ModelInfo | undefined>,
+		getGlobalState(context, "ocaLiteLlmBaseUrl") as Promise<string | undefined>,
+		getSecret(context, "ocaAccessToken") as Promise<string | undefined>,
+		getGlobalState(context, "ocaAccessTokenExpiresAt") as Promise<number | undefined>,
+		getGlobalState(context, "ocaAccessTokenSub") as Promise<string | undefined>,
 	])
 
 	const localClineRulesToggles = (await getWorkspaceState(context, "localClineRulesToggles")) as ClineRulesToggles
@@ -308,6 +317,8 @@ export async function getAllExtensionState(context: vscode.ExtensionContext) {
 		previousModeAwsBedrockCustomModelBaseId,
 		previousModeSapAiCoreModelId,
 		sapAiCoreModelId,
+		ocaLiteLlmModelId,
+		ocaLiteLlmModelInfo,
 	] = await Promise.all([
 		getGlobalState(context, "chatSettings") as Promise<StoredChatSettings | undefined>,
 		getGlobalState(context, "mode") as Promise<"plan" | "act" | undefined>,
@@ -340,6 +351,8 @@ export async function getAllExtensionState(context: vscode.ExtensionContext) {
 		getGlobalState(context, "previousModeAwsBedrockCustomModelBaseId") as Promise<BedrockModelId | undefined>,
 		getGlobalState(context, "previousModeSapAiCoreModelId") as Promise<string | undefined>,
 		getGlobalState(context, "sapAiCoreModelId") as Promise<string | undefined>,
+		getGlobalState(context, "ocaLiteLlmModelId") as Promise<string | undefined>,
+		getGlobalState(context, "ocaLiteLlmModelInfo") as Promise<OcaLiteLLMModelInfo | undefined>,
 	])
 
 	const processingStart = performance.now()
@@ -462,6 +475,12 @@ export async function getAllExtensionState(context: vscode.ExtensionContext) {
 			sapAiCoreTokenUrl,
 			sapAiResourceGroup,
 			sapAiCoreModelId,
+			ocaLiteLlmBaseUrl,
+			ocaLiteLlmModelId,
+			ocaLiteLlmModelInfo,
+			ocaAccessToken,
+			ocaAccessTokenExpiresAt,
+			ocaAccessTokenSub,
 		},
 		isNewUser: isNewUser ?? true,
 		welcomeViewCompleted,
@@ -581,6 +600,12 @@ export async function updateApiConfiguration(context: vscode.ExtensionContext, a
 		sapAiResourceGroup,
 		sapAiCoreModelId,
 		claudeCodePath,
+		ocaLiteLlmBaseUrl,
+		ocaLiteLlmModelId,
+		ocaAccessToken,
+		ocaAccessTokenExpiresAt,
+		ocaAccessTokenSub,
+		ocaLiteLlmModelInfo,
 	} = apiConfiguration
 
 	// OPTIMIZED: Batch all global state updates into 2 operations instead of 47
@@ -641,6 +666,11 @@ export async function updateApiConfiguration(context: vscode.ExtensionContext, a
 		sapAiCoreTokenUrl,
 		sapAiResourceGroup,
 		claudeCodePath,
+		ocaAccessTokenSub,
+		ocaLiteLlmBaseUrl,
+		ocaLiteLlmModelId,
+		ocaLiteLlmModelInfo,
+		ocaAccessTokenExpiresAt
 	}
 
 	// OPTIMIZED: Batch all secret updates into 1 operation instead of 23
@@ -672,6 +702,7 @@ export async function updateApiConfiguration(context: vscode.ExtensionContext, a
 		nebiusApiKey,
 		sapAiCoreClientId,
 		sapAiCoreClientSecret,
+		ocaAccessToken
 	}
 
 	// Execute batched operations in parallel for maximum performance

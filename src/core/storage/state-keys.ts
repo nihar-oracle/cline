@@ -27,6 +27,7 @@ export type SecretKey =
 	| "sapAiCoreClientId"
 	| "sapAiCoreClientSecret"
 	| "groqApiKey"
+	| "ocaAccessToken"
 
 export type GlobalStateKey =
 	| "awsRegion"
@@ -84,6 +85,7 @@ export type GlobalStateKey =
 	| "sapAiCoreBaseUrl"
 	| "sapAiResourceGroup"
 	| "claudeCodePath"
+	| "ocaLiteLlmBaseUrl"
 	// Settings around plan/act and ephemeral model configuration
 	| "chatSettings"
 	| "mode"
@@ -108,6 +110,10 @@ export type GlobalStateKey =
 	| "togetherModelId"
 	| "fireworksModelId"
 	| "sapAiCoreModelId"
+	| "ocaLiteLlmModelId"
+	| "ocaLiteLlmModelInfo"
+	| "ocaAccessTokenExpiresAt"
+	| "ocaAccessTokenSub"
 	// Previous mode saved configurations (per workspace)
 	| "previousModeApiProvider"
 	| "previousModeModelId"

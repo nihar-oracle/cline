@@ -19,6 +19,8 @@ service ModelsService {
   rpc refreshOpenAiModels(OpenAiModelsRequest) returns (StringArray);
   // Refreshes and returns Requesty models
   rpc refreshRequestyModels(EmptyRequest) returns (OpenRouterCompatibleModelInfo);
+  // Refreshes and returns Oca models
+  rpc refreshOcaModels(EmptyRequest) returns (OcaModelInfoMap);
   // Subscribe to OpenRouter models updates
   rpc subscribeToOpenRouterModels(EmptyRequest) returns (stream OpenRouterCompatibleModelInfo);
   // Updates API configuration
@@ -126,6 +128,7 @@ enum ApiProvider {
   SAPAICORE = 25;
   CLAUDE_CODE = 26;
   MOONSHOT = 27;
+  OCA = 28;
 }
 
 // Model info for OpenAI-compatible models
@@ -161,6 +164,28 @@ message LiteLLMModelInfo {
   optional string description = 11;
   repeated ModelTier tiers = 12;
   optional double temperature = 13;
+}
+
+message OcaLiteLLMModelInfo {
+  optional int32 max_tokens = 1;
+  optional int32 context_window = 2;
+  optional bool supports_images = 3;
+  bool supports_prompt_cache = 4;
+  optional double input_price = 5;
+  optional double output_price = 6;
+  optional ThinkingConfig thinking_config = 7;
+  optional double cache_writes_price = 9;
+  optional double cache_reads_price = 10;
+  optional string description = 11;
+  optional double temperature = 13;
+  optional string survey_content = 14;
+  optional string survey_id = 15;
+  optional string banner_content = 16;
+  string model_name = 17;
+}
+
+message OcaModelInfoMap {
+  map<string, OcaLiteLLMModelInfo> models = 1;
 }
 
 // Main ApiConfiguration message
@@ -246,4 +271,11 @@ message ModelsApiConfiguration {
   optional string groq_api_key = 78;
   optional string groq_model_id = 79;
   optional OpenRouterModelInfo groq_model_info = 80;
+  // oca fields
+  optional string oca_lite_llm_base_url = 81;
+  optional string oca_lite_llm_model_id = 82;
+  optional string oca_access_token = 83;
+  optional int32 oca_access_token_expires_at = 84;
+  optional string oca_access_token_sub = 85;
+  optional OcaLiteLLMModelInfo oca_lite_llm_model_info = 86;
 }

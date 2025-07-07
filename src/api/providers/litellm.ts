@@ -1,39 +1,34 @@
 import { Anthropic } from "@anthropic-ai/sdk"
 import OpenAI from "openai"
-import { liteLlmDefaultModelId, liteLlmModelInfoSaneDefaults, LiteLLMModelInfo } from "@shared/api"
+import { ApiHandlerOptions, liteLlmDefaultModelId, liteLlmModelInfoSaneDefaults, type LiteLLMModelInfo } from "@shared/api"
 import { ApiHandler } from ".."
 import { ApiStream } from "../transform/stream"
 import { convertToOpenAiMessages } from "../transform/openai-format"
 import { withRetry } from "../retry"
 
-interface LiteLlmHandlerOptions {
-	liteLlmApiKey?: string
-	liteLlmBaseUrl?: string
-	liteLlmModelId?: string
-	liteLlmModelInfo?: LiteLLMModelInfo
-	thinkingBudgetTokens?: number
-	liteLlmUsePromptCache?: boolean
-	taskId?: string
-}
-
 export class LiteLlmHandler implements ApiHandler {
-	private options: LiteLlmHandlerOptions
-	private client: OpenAI | undefined
+	protected options: ApiHandlerOptions
+	protected client: OpenAI | undefined
 
-	constructor(options: LiteLlmHandlerOptions) {
+	constructor(options: ApiHandlerOptions) {
 		this.options = options
+		this.client = this.initializeClient(options)
 	}
 
-	private ensureClient(): OpenAI {
+	protected initializeClient(options: ApiHandlerOptions) {
+		return new OpenAI({
+			baseURL: options.liteLlmBaseUrl || "http://localhost:4000",
+			apiKey: options.liteLlmApiKey || "noop",
+		})
+	}
+
+	protected ensureClient(): OpenAI {
 		if (!this.client) {
 			if (!this.options.liteLlmApiKey) {
 				throw new Error("LiteLLM API key is required")
 			}
 			try {
-				this.client = new OpenAI({
-					baseURL: this.options.liteLlmBaseUrl || "http://localhost:4000",
-					apiKey: this.options.liteLlmApiKey || "noop",
-				})
+				this.client = this.initializeClient(this.options)
 			} catch (error) {
 				throw new Error(`Error creating LiteLLM client: ${error.message}`)
 			}
@@ -41,10 +36,18 @@ export class LiteLlmHandler implements ApiHandler {
 		return this.client
 	}
 
+	protected getModelId(): string {
+		return this.options.liteLlmModelId || liteLlmDefaultModelId
+	}
+
+	protected getModelInfo(): LiteLLMModelInfo {
+		return this.options.liteLlmModelInfo || liteLlmModelInfoSaneDefaults
+	}
+
 	async calculateCost(prompt_tokens: number, completion_tokens: number): Promise<number | undefined> {
 		// Reference: https://github.com/BerriAI/litellm/blob/122ee634f434014267af104814022af1d9a0882f/litellm/proxy/spend_tracking/spend_management_endpoints.py#L1473
 		const client = this.ensureClient()
-		const modelId = this.options.liteLlmModelId || liteLlmDefaultModelId
+		const modelId = this.getModelId()
 		try {
 			const response = await fetch(`${client.baseURL}/spend/calculate`, {
 				method: "POST",
@@ -84,7 +87,7 @@ export class LiteLlmHandler implements ApiHandler {
 			role: "system",
 			content: systemPrompt,
 		}
-		const modelId = this.options.liteLlmModelId || liteLlmDefaultModelId
+		const modelId = this.getModelId()
 		const isOminiModel = modelId.includes("o1-mini") || modelId.includes("o3-mini") || modelId.includes("o4-mini")
 
 		// Configuration for extended thinking
@@ -92,7 +95,7 @@ export class LiteLlmHandler implements ApiHandler {
 		const reasoningOn = budgetTokens !== 0 ? true : false
 		const thinkingConfig = reasoningOn ? { type: "enabled", budget_tokens: budgetTokens } : undefined
 
-		let temperature: number | undefined = this.options.liteLlmModelInfo?.temperature ?? 0
+		let temperature: number | undefined = this.getModelInfo().temperature ?? 0
 
 		if (isOminiModel && reasoningOn) {
 			temperature = undefined // Thinking mode doesn't support temperature
@@ -127,7 +130,7 @@ export class LiteLlmHandler implements ApiHandler {
 		})
 
 		const stream = await client.chat.completions.create({
-			model: this.options.liteLlmModelId || liteLlmDefaultModelId,
+			model: this.getModelId(),
 			messages: [enhancedSystemMessage, ...enhancedMessages],
 			temperature,
 			stream: true,
@@ -196,8 +199,8 @@ export class LiteLlmHandler implements ApiHandler {
 
 	getModel() {
 		return {
-			id: this.options.liteLlmModelId || liteLlmDefaultModelId,
-			info: this.options.liteLlmModelInfo || liteLlmModelInfoSaneDefaults,
+			id: this.getModelId(),
+			info: this.getModelInfo(),
 		}
 	}
 }

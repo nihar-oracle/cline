@@ -5,6 +5,7 @@ import {
 	ModelInfo,
 	OpenAiCompatibleModelInfo as AppOpenAiCompatibleModelInfo,
 	LiteLLMModelInfo as AppLiteLLMModelInfo,
+	type OcaLiteLLMModelInfo,
 } from "../../api"
 import {
 	ModelsApiConfiguration as ProtoApiConfiguration,
@@ -13,6 +14,7 @@ import {
 	OpenAiCompatibleModelInfo,
 	OpenRouterModelInfo,
 	ThinkingConfig,
+	OcaLiteLLMModelInfo as ProtoOcaLiteLLMModelInfo,
 } from "../../proto/models"
 
 // Convert application ThinkingConfig to proto ThinkingConfig
@@ -183,6 +185,56 @@ function convertProtoToOpenAiCompatibleModelInfo(
 	}
 }
 
+// Convert application LiteLLMModelInfo to proto LiteLLMModelInfo
+function convertOcaLiteLLMModelInfoToProto(info: OcaLiteLLMModelInfo | undefined): ProtoOcaLiteLLMModelInfo | undefined {
+	if (!info) {
+		return undefined
+	}
+
+	return {
+		maxTokens: info.maxTokens,
+		contextWindow: info.contextWindow,
+		supportsImages: info.supportsImages,
+		supportsPromptCache: info.supportsPromptCache ?? false,
+		inputPrice: info.inputPrice,
+		outputPrice: info.outputPrice,
+		thinkingConfig: convertThinkingConfigToProto(info.thinkingConfig),
+		cacheWritesPrice: info.cacheWritesPrice,
+		cacheReadsPrice: info.cacheReadsPrice,
+		description: info.description,
+		temperature: info.temperature,
+		surveyContent: info.surveyContent,
+		surveyId: info.surveyId,
+		bannerContent: info.bannerContent,
+		modelName: info.modelName,
+	}
+}
+
+// Convert proto LiteLLMModelInfo to application LiteLLMModelInfo
+function convertProtoToOcaLiteLLMModelInfo(info: ProtoOcaLiteLLMModelInfo | undefined): OcaLiteLLMModelInfo | undefined {
+	if (!info) {
+		return undefined
+	}
+
+	return {
+		maxTokens: info.maxTokens,
+		contextWindow: info.contextWindow,
+		supportsImages: info.supportsImages,
+		supportsPromptCache: info.supportsPromptCache,
+		inputPrice: info.inputPrice,
+		outputPrice: info.outputPrice,
+		thinkingConfig: convertProtoToThinkingConfig(info.thinkingConfig),
+		cacheWritesPrice: info.cacheWritesPrice,
+		cacheReadsPrice: info.cacheReadsPrice,
+		description: info.description,
+		temperature: info.temperature,
+		surveyContent: info.surveyContent,
+		surveyId: info.surveyId,
+		bannerContent: info.bannerContent,
+		modelName: info.modelName,
+	}
+}
+
 // Convert application ApiProvider to proto ApiProvider
 function convertApiProviderToProto(provider: string | undefined): ProtoApiProvider {
 	switch (provider) {
@@ -242,6 +294,8 @@ function convertApiProviderToProto(provider: string | undefined): ProtoApiProvid
 			return ProtoApiProvider.SAPAICORE
 		case "claude-code":
 			return ProtoApiProvider.CLAUDE_CODE
+		case "oca":
+			return ProtoApiProvider.OCA
 		default:
 			return ProtoApiProvider.ANTHROPIC
 	}
@@ -306,6 +360,8 @@ function convertProtoToApiProvider(provider: ProtoApiProvider): ApiProvider {
 			return "sapaicore"
 		case ProtoApiProvider.CLAUDE_CODE:
 			return "claude-code"
+		case ProtoApiProvider.OCA:
+			return "oca"
 		default:
 			return "anthropic"
 	}
@@ -394,6 +450,12 @@ export function convertApiConfigurationToProto(config: ApiConfiguration): ProtoA
 		sapAiCoreTokenUrl: config.sapAiCoreTokenUrl,
 		sapAiCoreBaseUrl: config.sapAiCoreBaseUrl,
 		claudeCodePath: config.claudeCodePath,
+		ocaAccessToken: config.ocaAccessToken,
+		ocaAccessTokenExpiresAt: config.ocaAccessTokenExpiresAt,
+		ocaAccessTokenSub: config.ocaAccessTokenSub,
+		ocaLiteLlmModelId: config.ocaLiteLlmModelId,
+		ocaLiteLlmModelInfo: convertOcaLiteLLMModelInfoToProto(config.ocaLiteLlmModelInfo),
+		ocaLiteLlmBaseUrl: config.ocaLiteLlmBaseUrl,
 	}
 }
 
@@ -480,5 +542,11 @@ export function convertProtoToApiConfiguration(protoConfig: ProtoApiConfiguratio
 		sapAiCoreTokenUrl: protoConfig.sapAiCoreTokenUrl,
 		sapAiCoreBaseUrl: protoConfig.sapAiCoreBaseUrl,
 		claudeCodePath: protoConfig.claudeCodePath,
+		ocaAccessToken: protoConfig.ocaAccessToken,
+		ocaAccessTokenExpiresAt: protoConfig.ocaAccessTokenExpiresAt,
+		ocaAccessTokenSub: protoConfig.ocaAccessTokenSub,
+		ocaLiteLlmModelId: protoConfig.ocaLiteLlmModelId,
+		ocaLiteLlmModelInfo: convertProtoToOcaLiteLLMModelInfo(protoConfig.ocaLiteLlmModelInfo),
+		ocaLiteLlmBaseUrl: protoConfig.ocaLiteLlmBaseUrl,
 	}
 }

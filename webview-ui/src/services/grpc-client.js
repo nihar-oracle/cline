@@ -12,6 +12,7 @@ import { WebServiceDefinition } from "@shared/proto/web"
 import { ModelsServiceDefinition } from "@shared/proto/models"
 import { SlashServiceDefinition } from "@shared/proto/slash"
 import { UiServiceDefinition } from "@shared/proto/ui"
+import { OcaServiceDefinition } from "@shared/proto/oca"
 const AccountServiceClient = createGrpcClient(AccountServiceDefinition)
 const BrowserServiceClient = createGrpcClient(BrowserServiceDefinition)
 const CheckpointsServiceClient = createGrpcClient(CheckpointsServiceDefinition)
@@ -23,6 +24,7 @@ const WebServiceClient = createGrpcClient(WebServiceDefinition)
 const ModelsServiceClient = createGrpcClient(ModelsServiceDefinition)
 const SlashServiceClient = createGrpcClient(SlashServiceDefinition)
 const UiServiceClient = createGrpcClient(UiServiceDefinition)
+const OcaServiceClient = createGrpcClient(OcaServiceDefinition)
 export {
 	AccountServiceClient,
 	BrowserServiceClient,
@@ -35,5 +37,6 @@ export {
 	ModelsServiceClient,
 	SlashServiceClient,
 	UiServiceClient,
+	OcaServiceClient,
 }
 //# sourceMappingURL=grpc-client.js.map

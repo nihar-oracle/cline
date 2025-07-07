@@ -29,6 +29,7 @@ export type ApiProvider =
 	| "cerebras"
 	| "sapaicore"
 	| "groq"
+	| "oca"
 
 export interface ApiHandlerOptions {
 	apiModelId?: string
@@ -110,6 +111,12 @@ export interface ApiHandlerOptions {
 	sapAiCoreTokenUrl?: string
 	sapAiCoreBaseUrl?: string
 	sapAiCoreModelId?: string
+	ocaLiteLlmBaseUrl?: string
+	ocaLiteLlmModelId?: string
+	ocaAccessToken?: string
+	ocaAccessTokenExpiresAt?: number
+	ocaAccessTokenSub?: string
+	ocaLiteLlmModelInfo?: OcaLiteLLMModelInfo
 	onRetryAttempt?: (attempt: number, maxRetries: number, delay: number, error: any) => void
 }
 
@@ -155,6 +162,12 @@ export interface OpenAiCompatibleModelInfo extends ModelInfo {
 	isR1FormatRequired?: boolean
 }
 
+export interface OcaLiteLLMModelInfo extends OpenAiCompatibleModelInfo {
+	modelName: string
+	bannerContent?: string
+	surveyContent?: string
+	surveyId?: string
+}
 // Anthropic
 // https://docs.anthropic.com/en/docs/about-claude/models // prices updated 2025-01-02
 export type AnthropicModelId = keyof typeof anthropicModels

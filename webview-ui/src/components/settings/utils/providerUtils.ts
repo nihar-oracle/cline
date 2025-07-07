@@ -190,6 +190,12 @@ export function normalizeApiConfiguration(apiConfiguration?: ApiConfiguration): 
 			return result
 		case "sapaicore":
 			return getProviderData(sapAiCoreModels, sapAiCoreDefaultModelId)
+		case "oca":
+			return {
+				selectedProvider: provider,
+				selectedModelId: apiConfiguration?.ocaLiteLlmModelId || "",
+				selectedModelInfo: apiConfiguration?.ocaLiteLlmModelInfo || liteLlmModelInfoSaneDefaults,
+			}
 		default:
 			return getProviderData(anthropicModels, anthropicDefaultModelId)
 	}
