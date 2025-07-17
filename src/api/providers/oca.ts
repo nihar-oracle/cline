@@ -1,18 +1,18 @@
 import OpenAI from "openai"
 import { ApiHandlerOptions, liteLlmModelInfoSaneDefaults, type LiteLLMModelInfo } from "@shared/api"
-import { LiteLlmHandler } from "./litellm"
+import { LiteLlmHandler, type LiteLlmHandlerOptions } from "./litellm"
 import { OcaTokenManager } from "@/core/controller/oca/util/ocaTokenManager"
 import { Logger } from "@/services/logging/Logger"
 import { DEFAULT_OCA_BASE_URL } from "@/core/controller/oca/util/constants"
 import { createOcaHeaders } from "@/core/controller/oca/util/utils"
 
 export class OcaHandler extends LiteLlmHandler {
-	constructor(options: ApiHandlerOptions) {
+	constructor(options: LiteLlmHandlerOptions) {
 		super(options)
 	}
-	protected override initializeClient(options: ApiHandlerOptions) {
+	protected override initializeClient(options: LiteLlmHandlerOptions) {
 		return new OpenAI({
-			baseURL: options.ocaLiteLlmBaseUrl || DEFAULT_OCA_BASE_URL,
+			baseURL: options.liteLlmBaseUrl || DEFAULT_OCA_BASE_URL,
 			apiKey: "noop",
 			fetch: async (url, init) => {
 				try {
@@ -43,20 +43,13 @@ export class OcaHandler extends LiteLlmHandler {
 			},
 		})
 	}
-	override getModelId(): string {
-		return this.options.ocaLiteLlmModelId!
-	}
-
-	override getModelInfo(): LiteLLMModelInfo {
-		return this.options.ocaLiteLlmModelInfo || liteLlmModelInfoSaneDefaults
-	}
 
 	override ensureClient(): OpenAI {
 		if (!this.client) {
-			if (!this.options.ocaAccessToken) {
+			if (!this.options.liteLlmApiKey) {
 				throw new Error("Oracle Code Assist (OCA) access token is not available")
 			}
-			if (!this.options.ocaLiteLlmModelId) {
+			if (!this.options.liteLlmModelId) {
 				throw new Error("Oracle Code Assist (OCA) model is not selected")
 			}
 			try {

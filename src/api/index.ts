@@ -246,7 +246,15 @@ function createHandlerForProvider(apiProvider: string | undefined, options: Omit
 				thinkingBudgetTokens: options.thinkingBudgetTokens,
 			})
 		case "oca":
-			return new OcaHandler(options)
+			return new OcaHandler({
+				liteLlmApiKey: options.ocaAccessToken,
+				liteLlmBaseUrl: options.ocaLiteLlmBaseUrl,
+				liteLlmModelId: options.ocaLiteLlmModelId,
+				liteLlmModelInfo: options.ocaLiteLlmModelInfo,
+				thinkingBudgetTokens: options.thinkingBudgetTokens,
+				liteLlmUsePromptCache: options.ocaLiteLlmModelInfo?.supportsPromptCache,
+				taskId: options.taskId,
+			})
 		default:
 			return new AnthropicHandler({
 				apiKey: options.apiKey,
