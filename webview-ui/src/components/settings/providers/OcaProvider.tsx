@@ -109,7 +109,7 @@ export const OcaProvider = ({ isPopup }: OcaProviderProps) => {
 						initialValue={apiConfiguration?.ocaLiteLlmBaseUrl || ""}
 						defaultValue={undefined}
 						onChange={(value) => handleFieldChange("ocaLiteLlmBaseUrl", value)}
-						label="OCA LiteLLM Base URL (Default: Prod Chicago)"
+						label="Use Custom Base URL (optional)"
 					/>
 					<OcaModelPicker isPopup={isPopup} />
 					<VSCodeButton

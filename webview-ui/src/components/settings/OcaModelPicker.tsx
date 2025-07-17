@@ -8,7 +8,6 @@ import { ModelInfoView } from "./common/ModelInfoView"
 import { normalizeApiConfiguration } from "./utils/providerUtils"
 import { useApiConfigurationHandlers } from "./utils/useApiConfigurationHandlers"
 import ThinkingBudgetSlider from "./ThinkingBudgetSlider"
-import { DebouncedTextField } from "./common/DebouncedTextField"
 
 export interface OcaModelPickerProps {
 	isPopup?: boolean
@@ -157,7 +156,7 @@ const OcaRestrictivePopup: React.FC<{
 			left: 0,
 			width: "100vw",
 			height: "100vh",
-			zIndex: 1000,
+			zIndex: 2000,
 			background: "rgba(0,0,0,0.25)", // VSCode doesn't expose overlay, this works well for all themes
 			display: "flex",
 			alignItems: "center",
