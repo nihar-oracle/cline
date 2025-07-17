@@ -14,13 +14,10 @@ import { Logger } from "@/services/logging/Logger"
  * @param controller The controller instance.
  * @returns The login URL as a string.
  */
-export async function ocaLoginClicked(controller: Controller, unused: EmptyRequest): Promise<Empty> {
+export async function ocaLoginClicked(controller: Controller): Promise<Empty> {
 	// Perform oca oauth flow to get token set
 	Logger.info("Login button clicked in oca provider page")
-	const { apiConfiguration } = await getAllExtensionState(controller.context)
-
 	const tokenSet = await OcaTokenManager.getToken()
-
 	if (!tokenSet) {
 		throw new Error("Failed to fetch token set")
 	}
