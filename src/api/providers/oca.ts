@@ -36,23 +36,23 @@ export class OcaHandler implements ApiHandler {
 			baseURL: options.ocaBaseUrl || DEFAULT_OCA_BASE_URL,
 			apiKey: "noop",
 			fetch: async (url, init) => {
+				// Authorization Header
+				const token = (await OcaTokenManager.getToken()).access_token
+				if (!token) {
+					throw new Error("Oracle Code Assist (OCA) access token is not available")
+				}
+
+				const globalFetch = (typeof fetch === "function" ? fetch : globalThis.fetch).bind(undefined)
+
+				// OCA Headers
+				const headersRecord = await createOcaHeaders(token, this.options.taskId!)
+				const headers = new Headers()
+				for (const [key, value] of Object.entries(headersRecord)) {
+					headers.append(key, value)
+				}
+				Logger.log(`Making request with customer opc-request-id: ${headers.get("opc-request-id")}`)
+
 				try {
-					// Authorization Header
-					const token = (await OcaTokenManager.getToken()).access_token
-					if (!token) {
-						throw new Error("Oracle Code Assist (OCA) access token is not available")
-					}
-
-					const globalFetch = (typeof fetch === "function" ? fetch : globalThis.fetch).bind(undefined)
-
-					// OCA Headers
-					const headersRecord = await createOcaHeaders(token, this.options.taskId!)
-					const headers = new Headers()
-					for (const [key, value] of Object.entries(headersRecord)) {
-						headers.append(key, value)
-					}
-					Logger.log(`Making request with customer opc-request-id: ${headers.get("opc-request-id")}`)
-
 					return await globalFetch(url, {
 						...init,
 						headers,
@@ -60,7 +60,7 @@ export class OcaHandler implements ApiHandler {
 				} catch (e) {
 					HostProvider.window.showMessage({
 						type: ShowMessageType.ERROR,
-						message: "Failed to fetch models" + e,
+						message: `Failed to fetch models. opc-request-id: ${headers.get("opc-request-id")}` + e,
 					})
 					throw e
 				}
