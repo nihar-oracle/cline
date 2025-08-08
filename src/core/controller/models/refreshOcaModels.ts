@@ -6,6 +6,8 @@ import { getAllExtensionState, updateGlobalState } from "@core/storage/state"
 import { createOcaHeaders } from "../oca/util/utils"
 import { DEFAULT_OCA_BASE_URL } from "../oca/util/constants"
 import * as vscode from "vscode"
+import { HostProvider } from "@/hosts/host-provider"
+import { ShowMessageType } from "@/shared/proto/index.host"
 /**
  * Refreshes the Oca models and returns the updated model list
  * @param controller The controller instance
@@ -32,6 +34,12 @@ export async function refreshOcaModels(controller: Controller, request: StringRe
 
 		const response = await axios.get(modelsUrl, { headers })
 		if (response.data?.data) {
+			if (response.data.data.length === 0) {
+				HostProvider.window.showMessage({
+					type: ShowMessageType.ERROR,
+					message: "You have not requested access to OCA models. Please request desired model entitlements.",
+				})
+			}
 			for (const model of response.data.data) {
 				if (typeof model?.litellm_params?.model !== "string") {
 					continue
@@ -66,7 +74,7 @@ export async function refreshOcaModels(controller: Controller, request: StringRe
 				})
 				models[modelId] = ocaModelInfo
 			}
-			console.log("Oca models fetched", models)
+			console.log("OCA models fetched", models)
 			const planModeSelectedModelId =
 				apiConfiguration?.planModeOcaModelId && models[apiConfiguration.planModeOcaModelId]
 					? apiConfiguration.planModeOcaModelId
@@ -85,14 +93,21 @@ export async function refreshOcaModels(controller: Controller, request: StringRe
 			await updateGlobalState(controller.context, "actModeOcaModelId", actModeSelectedModelId)
 			await updateGlobalState(controller.context, "actModeOcaModelInfo", actModeSelectedModelInfo)
 
-			vscode.window.showInformationMessage(`Refresh Oca models from ${baseUrl}`)
+			vscode.window.showInformationMessage(`Refresh OCA models from ${baseUrl}`)
+			HostProvider.window.showMessage({
+				type: ShowMessageType.INFORMATION,
+				message: `Refreshing OCA models from ${baseUrl}`,
+			})
 			await controller.postStateToWebview()
 		} else {
-			console.error("Invalid response from oca API")
-			vscode.window.showErrorMessage(`Failed to fetch Oca models. Please check your configuration from ${baseUrl}`)
+			console.error("Invalid response from OCA API")
+			HostProvider.window.showMessage({
+				type: ShowMessageType.ERROR,
+				message: `Failed to fetch OCA models. Please check your configuration from ${baseUrl}`,
+			})
 		}
 	} catch (error) {
-		console.error("Error fetching oca models:", error)
+		console.error("Error fetching OCA models:", error)
 	}
 
 	return OcaModelInfoMap.create({ models })

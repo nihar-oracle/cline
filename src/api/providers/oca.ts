@@ -9,6 +9,8 @@ import { DEFAULT_OCA_BASE_URL } from "@/core/controller/oca/util/constants"
 import { OcaTokenManager } from "@/core/controller/oca/util/ocaTokenManager"
 import { createOcaHeaders } from "@/core/controller/oca/util/utils"
 import { Logger } from "@/services/logging/Logger"
+import { HostProvider } from "@/hosts/host-provider"
+import { ShowMessageRequest, ShowMessageType } from "@/shared/proto/index.host"
 
 export interface OcaHandlerOptions {
 	ocaApiKey?: string
@@ -56,7 +58,10 @@ export class OcaHandler implements ApiHandler {
 						headers,
 					})
 				} catch (e) {
-					console.error("Fetch failed:", e)
+					HostProvider.window.showMessage({
+						type: ShowMessageType.ERROR,
+						message: "Failed to fetch models" + e,
+					})
 					throw e
 				}
 			},
