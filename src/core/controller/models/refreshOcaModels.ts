@@ -108,18 +108,21 @@ export async function refreshOcaModels(controller: Controller, request: StringRe
 			})
 		}
 	} catch (err) {
-		let userMsg = `Error refreshing OCA models. opc-request-id: ${headers["opc-request-id"]}`
-		if (axios.isAxiosError(err)) {
-			if (err.message?.toLowerCase().includes("fetch failed") || (err as AxiosError).code === "ERR_NETWORK") {
-				userMsg = `Cannot reach the OCA service at ${baseUrl}. Check your network or proxy configuration. See the troubleshooting guide for more information.`
-			} else if (err.response) {
-				userMsg = `OCA service returned ${err.response.status} ${err.response.statusText}. Verify your access token and entitlements.`
-			}
+		let userMsg
+		if (err.response) {
+			// The request was made and the server responded with a status code that falls out of the range of 2xx
+			userMsg = `Did you set up your OCA access (possibly through entitlements)? OCA service returned ${err.response.status} ${err.response.statusText}.`
+		} else if (err.request) {
+			// The request was made but no response was received
+			userMsg = `Unable to access the OCA backend. Is your endpoint and proxy configured properly? Please see the troubleshooting guide.`
+		} else {
+			userMsg = err.message
 		}
+
 		console.error(userMsg, err)
 		HostProvider.window.showMessage({
 			type: ShowMessageType.ERROR,
-			message: userMsg,
+			message: `Error refreshing OCA models. ` + userMsg + ` opc-request-id: ${headers["opc-request-id"]}`,
 		})
 	}
 
