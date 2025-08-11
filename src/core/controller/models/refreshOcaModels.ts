@@ -43,7 +43,7 @@ export async function refreshOcaModels(controller: Controller, request: StringRe
 			if (response.data.data.length === 0) {
 				HostProvider.window.showMessage({
 					type: ShowMessageType.ERROR,
-					message: "You have not requested access to OCA models. Please request desired model entitlements.",
+					message: "No models found. Did you set up your OCA access (possibly through entitlements)?",
 				})
 			}
 			for (const model of response.data.data) {
