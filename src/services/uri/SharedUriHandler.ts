@@ -56,7 +56,7 @@ export class SharedUriHandler {
 					return false
 				}
 				case "/auth/oca": {
-					console.log("SharedUriHandler: Oca Auth callback received:", { path: uri.path })
+					console.log("SharedUriHandler: Oca Auth callback received:", { path: path })
 
 					const code = query.get("code")
 					const state = query.get("state")

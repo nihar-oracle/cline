@@ -56,7 +56,7 @@ export class OcaAuthHandler {
 			this.updateTimeout()
 		}
 
-		return `http://localhost:${this.port}`
+		return `http://localhost:${this.port}/callback`
 	}
 
 	private async createServer(): Promise<void> {
@@ -148,29 +148,29 @@ export class OcaAuthHandler {
 	}
 
 	private async handleRequest(req: IncomingMessage, res: ServerResponse): Promise<void> {
-		console.log("OcaAuthHandler: Received request", { method: req.method, url: req.url })
 		try {
-			const base = `${await HostProvider.get().getCallbackUri()}/auth/oca`
-			const pathAndQuery = req.url || "/"
-			const target = new URL(pathAndQuery, base).toString()
-			console.log("OcaAuthHandler: Redirecting to", target)
+			const vscodeBase = await HostProvider.get().getCallbackUri()
+			let target = (vscodeBase.endsWith("/") ? vscodeBase : vscodeBase + "/") + "auth/oca"
 
+			// Preserve original query string if present
+			const idx = (req.url || "").indexOf("?")
+			if (idx !== -1) {
+				target += (req.url as string).substring(idx)
+			}
+
+			// Simple 302 redirect
 			res.statusCode = 302
 			res.setHeader("Location", target)
-			res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate")
-			res.setHeader("Pragma", "no-cache")
 			res.end()
 		} catch (error) {
 			console.error("OcaAuthHandler: Error processing request", error)
 			res.writeHead(500, { "Content-Type": "text/plain" })
 			res.end("Internal Server Error")
 		} finally {
-			// Stop the server after handling any request (success or failure)
-			console.log("OcaAuthHandler: Stopping server after handling request")
+			// Stop the server after handling the request
 			this.stop()
 		}
 	}
-
 	public stop(): void {
 		if (this.timeoutId) {
 			clearTimeout(this.timeoutId)
