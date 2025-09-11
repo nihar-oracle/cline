@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package cline;
+import "cline/common.proto";
+option java_package = "bot.cline.proto";
+option java_multiple_files = true;
+
+// Service for vector-related operations
+service VectorsService {
+  // Fetches available vectors from OCA
+  rpc refreshOcaVectors(StringRequest) returns (VectorStores);
+}
+
+message VectorStoreInfo {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+}
+
+message VectorStores {
+  map<string, VectorStoreInfo> vectors = 1;
+  optional string error = 2;
+}
