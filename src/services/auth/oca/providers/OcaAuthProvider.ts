@@ -85,7 +85,7 @@ export class OcaAuthProvider {
 			const userInfo: OcaUserInfo = await this.getUserAccountInfo(accessToken)
 			return { user: userInfo, apiKey: accessToken }
 		} catch (error) {
-			console.error("Oca restore token error", error)
+			console.error("OCA restore token error", error)
 			throw error
 		}
 	}

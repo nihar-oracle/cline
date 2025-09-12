@@ -171,12 +171,12 @@ export class Controller {
 			await this.postStateToWebview()
 			HostProvider.window.showMessage({
 				type: ShowMessageType.INFORMATION,
-				message: "Successfully logged out of Oca",
+				message: "Successfully logged out of OCA",
 			})
 		} catch (_error) {
 			HostProvider.window.showMessage({
 				type: ShowMessageType.INFORMATION,
-				message: "Oca Logout failed",
+				message: "OCA Logout failed",
 			})
 		}
 	}

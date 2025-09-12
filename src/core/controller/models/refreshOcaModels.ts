@@ -24,14 +24,20 @@ export async function refreshOcaModels(controller: Controller, request: StringRe
 	}
 	const models: Record<string, OcaModelInfo> = {}
 	let defaultModelId: string | undefined
+	const ocaAccessToken = await OcaAuthService.getInstance().getAuthToken(controller)
+	const baseUrl = request.value || DEFAULT_OCA_BASE_URL
+	const modelsUrl = `${baseUrl}/v1/model/info`
+	const headers = await createOcaHeaders(ocaAccessToken!, "models-refresh")
 	try {
-		const ocaAccessToken = await OcaAuthService.getInstance().getAuthToken(controller)
-		const baseUrl = request.value || DEFAULT_OCA_BASE_URL
-		const modelsUrl = `${baseUrl}/v1/model/info`
-		const headers = await createOcaHeaders(ocaAccessToken!, "models-refresh")
 		Logger.log(`Making refresh oca model request with customer opc-request-id: ${headers["opc-request-id"]}`)
 		const response = await axios.get(modelsUrl, { headers, ...getProxyAgents() })
 		if (response.data?.data) {
+			if (response.data.data.length === 0) {
+				HostProvider.window.showMessage({
+					type: ShowMessageType.ERROR,
+					message: "No models found. Did you set up your OCA access (possibly through entitlements)?",
+				})
+			}
 			for (const model of response.data.data) {
 				const modelId = model.litellm_params?.model
 				if (typeof modelId !== "string" || !modelId) {
@@ -59,7 +65,7 @@ export async function refreshOcaModels(controller: Controller, request: StringRe
 					modelName: modelId,
 				})
 			}
-			console.log("Oca models fetched", models)
+			console.log("OCA models fetched", models)
 
 			// Fetch current config
 			const apiConfiguration = controller.stateManager.getApiConfiguration()
@@ -97,24 +103,33 @@ export async function refreshOcaModels(controller: Controller, request: StringRe
 
 			HostProvider.window.showMessage({
 				type: ShowMessageType.INFORMATION,
-				message: `Refreshed Oca models from ${baseUrl}`,
+				message: `Refreshed OCA models from ${baseUrl}`,
 			})
 			await controller.postStateToWebview?.()
 		} else {
-			console.error("Invalid response from oca API")
+			console.error("Invalid response from OCA API")
 			HostProvider.window.showMessage({
-				type: ShowMessageType.INFORMATION,
-				message: `Failed to fetch Oca models. Please check your configuration from ${baseUrl}`,
+				type: ShowMessageType.ERROR,
+				message: `Failed to fetch OCA models. Please check your configuration from ${baseUrl}`,
 			})
 		}
-	} catch (error) {
-		console.error("Error fetching oca models:", error)
-		const errorMsg = error.message || "Error refreshing Oca models"
+	} catch (err) {
+		let userMsg
+		if (err.response) {
+			// The request was made and the server responded with a status code that falls out of the range of 2xx
+			userMsg = `Did you set up your OCA access (possibly through entitlements)? OCA service returned ${err.response.status} ${err.response.statusText}.`
+		} else if (err.request) {
+			// The request was made but no response was received
+			userMsg = `Unable to access the OCA backend. Is your endpoint and proxy configured properly? Please see the troubleshooting guide.`
+		} else {
+			userMsg = err.message
+			console.error(userMsg, err)
+		}
 		HostProvider.window.showMessage({
 			type: ShowMessageType.ERROR,
-			message: errorMsg,
+			message: `Error refreshing OCA models. ` + userMsg + ` opc-request-id: ${headers["opc-request-id"]}`,
 		})
-		return OcaCompatibleModelInfo.create({ error: errorMsg })
+		return OcaCompatibleModelInfo.create({ error: userMsg })
 	}
 	return OcaCompatibleModelInfo.create({ models })
 }
