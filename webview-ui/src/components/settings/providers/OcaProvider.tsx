@@ -28,9 +28,9 @@ interface OcaProviderProps {
 function InfoCard({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
 	return (
 		<div
-			className={`mt-10 flex items-start gap-3 rounded-xl px-5 py-4 border shadow-sm min-w-[40%] max-w-[90%] w-full box-border
+			className={`mt-2 flex items-start gap-3 rounded-none px-5 py-4 pb-8 border shadow-sm min-w-[40%] max-w-[90%] w-full box-border
                  bg-[var(${VSC_INPUT_BACKGROUND})] border-[var(${VSC_INPUT_BORDER})]`}>
-			<div className="min-w-[22px] h-[22px] flex items-center justify-center shrink-0 mt-px">{icon}</div>
+			<div className="min-w-[22px] h-[22px] flex items-center justify-center shrink-0 mt-2">{icon}</div>
 			<div className="flex-1">{children}</div>
 		</div>
 	)
@@ -124,6 +124,7 @@ function useOcaModels({
 	const [models, setModels] = useState<Record<string, OcaModelInfo>>({})
 	const [loading, setLoading] = useState(false)
 	const [error, setError] = useState<string | null>(null)
+	const [lastRefreshedAt, setLastRefreshedAt] = useState<number | null>(null)
 
 	const reqIdRef = useRef(0)
 	const unmountedRef = useRef(false)
@@ -142,6 +143,7 @@ function useOcaModels({
 				} else {
 					setModels(resp.models || {})
 					setError(null)
+					setLastRefreshedAt(Date.now())
 				}
 			}
 		} catch (err) {
@@ -198,6 +200,7 @@ function useOcaModels({
 				if (resp.error) throw new Error(resp.error)
 				setModels(resp.models || {})
 				setError(null)
+				setLastRefreshedAt(Date.now())
 				return true
 			} catch (err) {
 				if (!retry) {
@@ -215,7 +218,7 @@ function useOcaModels({
 		await tryRefresh()
 	}, [baseUrl, login])
 
-	return { models, loading, error, refreshModels }
+	return { models, loading, error, refreshModels, lastRefreshedAt }
 }
 
 /**
@@ -228,11 +231,14 @@ export const OcaProvider = ({ isPopup, currentMode }: OcaProviderProps) => {
 	const { user: ocaUser, isAuthenticated, ready, login, logout } = useOcaAuth()
 
 	const ocaBaseUrl = apiConfiguration?.ocaBaseUrl || ""
+	const isOracle = (ocaUser?.email || "").toLowerCase().endsWith("@oracle.com")
 
 	const {
 		models: ocaModels,
 		refreshModels,
 		error: ocaError,
+		loading: ocaLoading,
+		lastRefreshedAt,
 	} = useOcaModels({
 		isAuthenticated,
 		baseUrl: ocaBaseUrl,
@@ -259,7 +265,7 @@ export const OcaProvider = ({ isPopup, currentMode }: OcaProviderProps) => {
 	return (
 		<div>
 			{!ready ? (
-				<div className="flex items-center gap-2 py-2">
+				<div aria-live="polite" className="flex items-center gap-2 py-2" role="status">
 					<VSCodeProgressRing />
 					<span className={`text-[13px] [color:var(${VSC_DESCRIPTION_FOREGROUND})]`}>Connecting…</span>
 				</div>
@@ -271,80 +277,186 @@ export const OcaProvider = ({ isPopup, currentMode }: OcaProviderProps) => {
 						}}
 						style={{
 							fontSize: 14,
-							borderRadius: 22,
 							fontWeight: 500,
 							background: `var(${VSC_BUTTON_BACKGROUND}, #0078d4)`,
 							color: `var(${VSC_BUTTON_FOREGROUND}, #fff)`,
 							minWidth: 0,
 							margin: "12px 0",
 						}}>
-						Sign In to Oracle Code Assist
+						Sign in with Oracle Code Assist
 					</VSCodeButton>
+					<p className="text-xs mt-0 text-[var(--vscode-descriptionForeground)]">
+						Please ask your IT administrator to set up Oracle Code Assist as a model provider. Oracle Employees,
+						please see the{" "}
+						<VSCodeLink
+							href="https://confluence.oraclecorp.com/confluence/display/AICODE/Oracle+Code+Assist+via+Cline"
+							rel="noopener noreferrer"
+							target="_blank">
+							quickstart guide
+						</VSCodeLink>
+						.
+					</p>
 				</div>
 			) : (
 				<div>
-					<div
-						className={`flex flex-col gap-1 font-semibold text-[13px] my-[12px] [color:var(${VSC_DESCRIPTION_FOREGROUND})]`}>
-						<span>Logged in as</span>
-						{ocaUser?.email ? (
-							<span className="font-semibold opacity-95">{ocaUser.email}</span>
-						) : ocaUser?.uid ? (
-							<span className="font-semibold opacity-95">{ocaUser.uid}</span>
-						) : (
-							<span className="font-semibold opacity-95">Unknown User</span>
-						)}
+					<div className={`flex items-center justify-between mt-0 mb-0 [color:var(${VSC_DESCRIPTION_FOREGROUND})]`}>
+						<div className="flex flex-col gap-0 font-semibold text-[13px]">
+							<span>Signed in</span>
+							{ocaUser?.email ? (
+								<span className="font-semibold opacity-95 mt-2">{ocaUser.email}</span>
+							) : ocaUser?.uid ? (
+								<span className="font-semibold opacity-95 mt-2">{ocaUser.uid}</span>
+							) : (
+								<span className="font-semibold opacity-95 mt-2">Unknown User</span>
+							)}
+							{isOracle && (
+								<p className="text-xs mt-0 font-normal text-[var(--vscode-descriptionForeground)]">
+									Oracle Employees, please see the{" "}
+									<VSCodeLink
+										href="https://confluence.oraclecorp.com/confluence/display/AICODE/Oracle+Code+Assist+via+Cline"
+										rel="noopener noreferrer"
+										target="_blank">
+										quickstart guide
+									</VSCodeLink>
+									.
+								</p>
+							)}
+						</div>
+						<VSCodeButton
+							onClick={async () => {
+								await logout()
+							}}>
+							Log out
+						</VSCodeButton>
 					</div>
 
-					<BaseUrlField
-						defaultValue={undefined}
-						initialValue={ocaBaseUrl}
-						label="Use Custom Base URL (optional)"
-						onChange={(value) => handleFieldChange("ocaBaseUrl", value)}
-					/>
+					<div className="mt-0">
+						<BaseUrlField
+							defaultValue={undefined}
+							initialValue={ocaBaseUrl}
+							label="Custom Base URL (optional)"
+							onChange={(value) => handleFieldChange("ocaBaseUrl", value)}
+						/>
+					</div>
 
 					<OcaModelPicker
 						apiConfiguration={apiConfiguration}
 						currentMode={currentMode}
 						isPopup={isPopup}
+						lastRefreshedAt={lastRefreshedAt}
+						loading={ocaLoading}
 						ocaModels={ocaModels}
 						onRefresh={handleRefresh}
 					/>
 
 					{isAuthenticated && ocaError && (
-						<div className={`mt-2 text-[13px] [color:var(${VSC_DESCRIPTION_FOREGROUND})]`}>
-							Failed to refresh models automatically. If you're already signed in, click "Refresh Models" to try
-							again.
+						<div
+							aria-live="polite"
+							className={`mt-2 text-[13px] [color:var(${VSC_DESCRIPTION_FOREGROUND})]`}
+							role="status">
+							<div>Failed to refresh models. Check your session or network.</div>
+							<div className="mt-2 flex gap-2">
+								<VSCodeButton appearance="secondary" onClick={handleRefresh}>
+									Retry
+								</VSCodeButton>
+								<VSCodeButton
+									appearance="secondary"
+									onClick={async () => {
+										await login()
+									}}>
+									Sign in again
+								</VSCodeButton>
+							</div>
 						</div>
 					)}
 
-					<VSCodeButton
-						onClick={async () => {
-							await logout()
-						}}>
-						Log out
-					</VSCodeButton>
-
 					<InfoCard
 						icon={
-							<svg aria-hidden fill="none" height="20" role="img" viewBox="0 0 31 31" width="20">
-								<path
-									d="M0.0805664 1.62516C0.0805664 0.773724 0.770794 0.0834961 1.62223 0.0834961H10.8738C12.7148 0.0834961 14.3675 0.890779 15.4972 2.17059C16.627 0.890779 18.2797 0.0834961 20.1207 0.0834961H29.3722C30.2237 0.0834961 30.9139 0.773724 30.9139 1.62516V24.7486C30.9139 25.6001 30.2237 26.2903 29.3722 26.2903H20.1222C18.4176 26.2903 17.0389 27.669 17.0389 29.3736C17.0389 30.2251 16.3487 30.9153 15.4972 30.9153C14.6458 30.9153 13.9556 30.2251 13.9556 29.3736C13.9556 27.669 12.5769 26.2903 10.8722 26.2903H1.62223C0.770794 26.2903 0.0805664 25.6001 0.0805664 24.7486V1.62516ZM13.9556 24.0311V6.24862C13.9556 4.54706 12.5753 3.16683 10.8738 3.16683H3.1639V23.207H10.8722C11.9957 23.207 13.0487 23.5069 13.9556 24.0311ZM17.0389 24.0311C17.9458 23.5069 18.9988 23.207 20.1222 23.207H27.8306V3.16683H20.1207C18.4191 3.16683 17.0389 4.54706 17.0389 6.24862V24.0311Z"
-									fill="none"
-									stroke={`var(${VSC_DESCRIPTION_FOREGROUND})`}
-									strokeWidth="1.25"
-								/>
+							<svg
+								aria-hidden
+								fill="none"
+								height="20"
+								role="img"
+								style={{ color: `var(${VSC_DESCRIPTION_FOREGROUND})` }}
+								viewBox="0 0 36 35"
+								width="20">
+								<g clipPath="url(#clip0)">
+									<path
+										d="M20 13.5991C20 14.672 19.1046 15.5418 18 15.5418C16.8954 15.5418 16 14.672 16 13.5991C16 12.5261 16.8954 11.6563 18 11.6563C19.1046 11.6563 20 12.5261 20 13.5991Z"
+										fill="none"
+										stroke="currentColor"
+										strokeWidth="1.25"
+									/>
+									<path
+										d="M10 15.5418C11.1046 15.5418 12 14.672 12 13.5991C12 12.5261 11.1046 11.6563 10 11.6563C8.89543 11.6563 8 12.5261 8 13.5991C8 14.672 8.89543 15.5418 10 15.5418Z"
+										fill="none"
+										stroke="currentColor"
+										strokeWidth="1.25"
+									/>
+									<path
+										d="M28 13.5991C28 14.672 27.1046 15.5418 26 15.5418C24.8954 15.5418 24 14.672 24 13.5991C24 12.5261 24.8954 11.6563 26 11.6563C27.1046 11.6563 28 12.5261 28 13.5991Z"
+										fill="none"
+										stroke="currentColor"
+										strokeWidth="1.25"
+									/>
+									<path
+										clipRule="evenodd"
+										d="M0 0V25.2554H10V34.4L19.4142 25.2554H36V0H0ZM2 23.3127V1.94272H34V23.3127H18.5858L12 29.7099V23.3127H2Z"
+										fill="none"
+										fillRule="evenodd"
+										stroke="currentColor"
+										strokeWidth="1.25"
+									/>
+								</g>
+								<defs>
+									<clipPath id="clip0">
+										<rect fill="white" height="35" width="36" />
+									</clipPath>
+								</defs>
 							</svg>
 						}>
-						<div className={`text-[14px] leading-[1.65] [color:var(${VSC_DESCRIPTION_FOREGROUND})]`}>
-							For internal Oracle Employees, <br />
-							please see the{" "}
-							<VSCodeLink
-								href="https://confluence.oraclecorp.com/confluence/display/AICODE/Oracle+Code+Assist+via+Cline"
-								style={{ color: "var(--vscode-textLink-foreground, #3794ff)", fontSize: 14, fontWeight: 500 }}>
-								Quickstart Guide
-							</VSCodeLink>
-							.<br />
-							For external customers, contact your IT admin to provision Oracle Code Assist as a provider.
+						<div
+							style={{
+								display: "flex",
+								flexDirection: "column",
+								alignItems: "center", // center title and button
+								width: "100%",
+							}}>
+							<div
+								style={{
+									fontSize: 14,
+									color: VSC_DESCRIPTION_FOREGROUND,
+									fontWeight: 600,
+									marginBottom: 18,
+									marginTop: 2,
+								}}>
+								Have an idea for Oracle Code Assist?
+							</div>
+						</div>
+						<div style={{ width: "100%", display: "flex", justifyContent: "center", marginTop: 8 }}>
+							<a
+								href="https://apexsurveys.oracle.com/ords/surveys/t/oca-nps/survey?k=oracle-code-assist-internal-link-share&sc=SMM1BNSNUI"
+								rel="noopener noreferrer"
+								style={{
+									fontSize: 14,
+									fontWeight: 500,
+									textDecoration: "none",
+									background: "var(--vscode-button-background)",
+									color: "var(--vscode-button-foreground)",
+									padding: "8px 14px",
+									minHeight: 28,
+									border: "1px solid var(--vscode-button-border, transparent)",
+									borderRadius: 0,
+									display: "inline-flex",
+									alignItems: "center",
+									justifyContent: "center",
+									minWidth: 0,
+									boxSizing: "border-box",
+									cursor: "pointer",
+								}}
+								target="_blank">
+								Provide feedback
+							</a>
 						</div>
 					</InfoCard>
 				</div>

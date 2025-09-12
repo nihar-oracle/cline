@@ -2,13 +2,7 @@ import type { ApiConfiguration, OcaModelInfo } from "@shared/api"
 import { Mode } from "@shared/storage/types"
 import { VSCodeButton, VSCodeDropdown, VSCodeOption } from "@vscode/webview-ui-toolkit/react"
 import React, { useMemo } from "react"
-import {
-	VSC_BUTTON_BACKGROUND,
-	VSC_BUTTON_FOREGROUND,
-	VSC_DESCRIPTION_FOREGROUND,
-	VSC_FOREGROUND,
-	VSC_INPUT_BACKGROUND,
-} from "@/utils/vscStyles"
+import { VSC_BUTTON_BACKGROUND, VSC_BUTTON_FOREGROUND, VSC_DESCRIPTION_FOREGROUND, VSC_FOREGROUND } from "@/utils/vscStyles"
 import { ModelInfoView } from "../common/ModelInfoView"
 import ThinkingBudgetSlider from "../ThinkingBudgetSlider"
 import { normalizeApiConfiguration } from "../utils/providerUtils"
@@ -20,6 +14,8 @@ export interface OcaModelPickerProps {
 	currentMode: Mode
 	ocaModels: Record<string, OcaModelInfo>
 	onRefresh: () => void | Promise<void>
+	loading?: boolean
+	lastRefreshedAt?: number | null
 }
 
 const OcaModelPicker: React.FC<OcaModelPickerProps> = ({
@@ -28,6 +24,8 @@ const OcaModelPicker: React.FC<OcaModelPickerProps> = ({
 	currentMode,
 	ocaModels,
 	onRefresh,
+	loading,
+	lastRefreshedAt,
 }: OcaModelPickerProps) => {
 	const { handleModeFieldsChange } = useApiConfigurationHandlers()
 	const [pendingModelId, setPendingModelId] = React.useState<string | null>(null)
@@ -93,6 +91,10 @@ const OcaModelPicker: React.FC<OcaModelPickerProps> = ({
 		}
 	}, [selectedModelId, ocaModels])
 
+	const lastRefreshedText = useMemo(() => {
+		return typeof lastRefreshedAt === "number" ? new Date(lastRefreshedAt).toLocaleTimeString() : null
+	}, [lastRefreshedAt])
+
 	return (
 		<div className="w-full">
 			{showRestrictedPopup && (
@@ -102,42 +104,50 @@ const OcaModelPicker: React.FC<OcaModelPickerProps> = ({
 				/>
 			)}
 			<label className="font-medium text-[12px] mt-[10px] mb-[2px]">Model</label>
-			<VSCodeDropdown
-				className="w-full text-[13px] min-h-[27px]"
-				id="model-id"
-				onChange={async (event: Event | React.FormEvent<HTMLElement>) => {
-					const target = event.target as HTMLSelectElement | null
-					const value = target?.value ?? ""
-					await handleModelChange(value)
-				}}
-				value={selectedModelId || ""}>
-				{modelIds?.map((modelId) => (
-					<VSCodeOption
-						key={modelId}
-						style={{
-							whiteSpace: "normal",
-							wordWrap: "break-word",
-							maxWidth: "100%",
-							fontSize: 13,
-						}}
-						value={modelId}>
-						{modelId}
-					</VSCodeOption>
-				))}
-			</VSCodeDropdown>
-			<VSCodeButton
-				onClick={handleRefreshToken}
-				style={{
-					fontSize: 14,
-					borderRadius: 22,
-					fontWeight: 500,
-					background: "var(--vscode-button-background, #0078d4)",
-					color: "var(--vscode-button-foreground, #fff)",
-					minWidth: 0,
-					margin: "12px 0",
-				}}>
-				Refresh
-			</VSCodeButton>
+			<div className="flex items-center gap-2">
+				<VSCodeDropdown
+					className="flex-1 text-[13px] min-h-[27px]"
+					id="model-id"
+					onChange={async (event: Event | React.FormEvent<HTMLElement>) => {
+						const target = event.target as HTMLSelectElement | null
+						const value = target?.value ?? ""
+						await handleModelChange(value)
+					}}
+					value={selectedModelId || ""}>
+					{modelIds?.map((modelId) => (
+						<VSCodeOption
+							key={modelId}
+							style={{
+								padding: "5px 10px",
+								cursor: "pointer",
+								wordWrap: "break-word",
+								maxWidth: "100%",
+								fontSize: 14,
+							}}
+							value={modelId}>
+							{modelId}
+						</VSCodeOption>
+					))}
+				</VSCodeDropdown>
+				<VSCodeButton
+					disabled={!!loading}
+					onClick={handleRefreshToken}
+					style={{
+						fontSize: 14,
+						fontWeight: 500,
+						background: "var(--vscode-button-background, #0078d4)",
+						color: "var(--vscode-button-foreground, #fff)",
+						minWidth: 0,
+						margin: 0,
+					}}>
+					{loading ? "Refreshing…" : "Refresh"}
+				</VSCodeButton>
+			</div>
+			{lastRefreshedText ? (
+				<div className="text-[11px] text-[var(--vscode-descriptionForeground)] mt-0 mb-2">
+					Last refreshed at {lastRefreshedText}
+				</div>
+			) : null}
 			{selectedModelInfo && (
 				<>
 					{showBudgetSlider && <ThinkingBudgetSlider currentMode={currentMode} />}
@@ -167,12 +177,7 @@ const OcaRestrictivePopup: React.FC<{
 				Disclaimer: Prohibited Data Submission
 			</h4>
 			<div className="overflow-y-auto flex-1 pr-2 mb-4 text-[13px] leading-[1.5] [color:var(--vscode-foreground,#222)] [mask-image:linear-gradient(to_bottom,black_96%,transparent_100%)]">
-				{bannerText && (
-					<div
-						className={`break-words [background:var(${VSC_INPUT_BACKGROUND},#252526)] [color:var(${VSC_FOREGROUND},#222)]`}
-						dangerouslySetInnerHTML={{ __html: bannerText }}
-					/>
-				)}
+				{bannerText && <div dangerouslySetInnerHTML={{ __html: bannerText }} />}
 			</div>
 			<div className="text-right">
 				<VSCodeButton

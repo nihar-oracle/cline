@@ -168,16 +168,6 @@ export class Controller {
 	async handleOcaSignOut() {
 		try {
 			OcaAuthService.getInstance().handleDeauth(this)
-
-			// Update API providers through cache service
-			const apiConfiguration = this.stateManager.getApiConfiguration()
-			const updatedConfig = {
-				...apiConfiguration,
-				planModeApiProvider: "openrouter" as ApiProvider,
-				actModeApiProvider: "openrouter" as ApiProvider,
-			}
-			this.stateManager.setApiConfiguration(updatedConfig)
-
 			await this.postStateToWebview()
 			HostProvider.window.showMessage({
 				type: ShowMessageType.INFORMATION,
