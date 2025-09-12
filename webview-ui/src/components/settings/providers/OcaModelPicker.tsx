@@ -103,26 +103,33 @@ const OcaModelPicker: React.FC<OcaModelPickerProps> = ({
 					onAcknowledge={onAcknowledge}
 				/>
 			)}
+			<style>{`
+				#model-id::part(listbox){
+					max-height: 100px;
+					overflow: auto;
+				}
+			`}</style>
 			<label className="font-medium text-[12px] mt-[10px] mb-[2px]">Model</label>
-			<div className="flex items-center gap-2">
+			<div className="relative z-[100] flex items-center gap-2 mb-1">
 				<VSCodeDropdown
-					className="flex-1 text-[13px] min-h-[27px]"
+					className="flex-1 text-[12px] min-h-[24px]"
 					id="model-id"
 					onChange={async (event: Event | React.FormEvent<HTMLElement>) => {
 						const target = event.target as HTMLSelectElement | null
 						const value = target?.value ?? ""
 						await handleModelChange(value)
 					}}
+					style={{ position: "relative", zIndex: 100 }}
 					value={selectedModelId || ""}>
 					{modelIds?.map((modelId) => (
 						<VSCodeOption
 							key={modelId}
 							style={{
-								padding: "5px 10px",
+								padding: "4px 8px",
 								cursor: "pointer",
 								wordWrap: "break-word",
 								maxWidth: "100%",
-								fontSize: 14,
+								fontSize: 12,
 							}}
 							value={modelId}>
 							{modelId}
