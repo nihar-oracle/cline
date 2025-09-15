@@ -153,6 +153,7 @@ export interface ApiHandlerOptions {
 	planModeVercelAiGatewayModelInfo?: ModelInfo
 	planModeOcaModelId?: string
 	planModeOcaModelInfo?: OcaModelInfo
+	planModeOcaVectorIds?: string[]
 	// Act mode configurations
 
 	// Act mode configurations
@@ -188,6 +189,7 @@ export interface ApiHandlerOptions {
 	actModeVercelAiGatewayModelInfo?: ModelInfo
 	actModeOcaModelId?: string
 	actModeOcaModelInfo?: OcaModelInfo
+	actModeOcaVectorIds?: string[]
 }
 
 export type ApiConfiguration = ApiHandlerOptions &
