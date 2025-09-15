@@ -72,6 +72,7 @@ export interface NormalizedApiConfig {
 	selectedProvider: ApiProvider
 	selectedModelId: string
 	selectedModelInfo: ModelInfo
+	selectedVectorIds?: string[]
 }
 
 /**
@@ -352,10 +353,13 @@ export function normalizeApiConfiguration(
 			const ocaModelId = currentMode === "plan" ? apiConfiguration?.planModeOcaModelId : apiConfiguration?.actModeOcaModelId
 			const ocaModelInfo =
 				currentMode === "plan" ? apiConfiguration?.planModeOcaModelInfo : apiConfiguration?.actModeOcaModelInfo
+			const ocaVectorIds =
+				currentMode === "plan" ? apiConfiguration?.planModeOcaVectorIds : apiConfiguration?.actModeOcaVectorIds
 			return {
 				selectedProvider: provider,
 				selectedModelId: ocaModelId || "",
 				selectedModelInfo: ocaModelInfo || liteLlmModelInfoSaneDefaults,
+				selectedVectorIds: ocaVectorIds || [],
 			}
 		default:
 			return getProviderData(anthropicModels, anthropicDefaultModelId)
