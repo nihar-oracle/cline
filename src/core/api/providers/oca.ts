@@ -2,6 +2,7 @@ import { Anthropic } from "@anthropic-ai/sdk"
 import { LiteLLMModelInfo, liteLlmDefaultModelId, liteLlmModelInfoSaneDefaults } from "@shared/api"
 import OpenAI, { APIError, OpenAIError } from "openai"
 import type { FinalRequestOptions, Headers as OpenAIHeaders } from "openai/core"
+import { ChatCompletionCreateParams } from "openai/resources/index.mjs"
 import type { Controller } from "@/core/controller"
 import { OcaAuthService } from "@/services/auth/oca/OcaAuthService"
 import { DEFAULT_OCA_BASE_URL, OCI_HEADER_OPC_REQUEST_ID } from "@/services/auth/oca/utils/constants"
@@ -20,6 +21,7 @@ export interface OcaHandlerOptions extends CommonApiHandlerOptions {
 	thinkingBudgetTokens?: number
 	ocaUsePromptCache?: boolean
 	taskId?: string
+	vectorIds: string[]
 }
 
 export class OcaHandler implements ApiHandler {
@@ -181,7 +183,7 @@ export class OcaHandler implements ApiHandler {
 			return message
 		})
 
-		const stream = await client.chat.completions.create({
+		const requestObject: ChatCompletionCreateParams = {
 			model: this.options.ocaModelId || liteLlmDefaultModelId,
 			messages: [enhancedSystemMessage, ...enhancedMessages],
 			temperature,
@@ -189,11 +191,31 @@ export class OcaHandler implements ApiHandler {
 			max_completion_tokens: maxTokens,
 			max_tokens: maxTokens,
 			stream_options: { include_usage: true },
-			...(thinkingConfig && { thinking: thinkingConfig }), // Add thinking configuration when applicable
+			...(thinkingConfig && { thinking: thinkingConfig }),
 			...(this.options.taskId && {
 				litellm_session_id: `cline-${this.options.taskId}`,
-			}), // Add session ID for LiteLLM tracking
-		})
+			}),
+			// tools: [{
+			// 	type: "file_search",
+			// 	"vector_store_ids": ["<vector_store_id_1>", "<vector_store_id_2>"]
+			// }]
+			tools: [
+				{
+					type: "function",
+					function: {
+						name: "file_search",
+						parameters: {
+							vectors: ["<vector_store_id_1>", "<vector_store_id_2>"],
+						},
+						description: "This is vector search for RAG",
+					},
+				},
+			],
+		}
+
+		console.log("Input: ", requestObject)
+
+		const stream: any = await client.chat.completions.create(requestObject)
 
 		const inputCost = (await this.calculateCost(1e6, 0)) || 0
 		const outputCost = (await this.calculateCost(0, 1e6)) || 0
