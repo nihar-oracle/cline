@@ -3,46 +3,46 @@ import { VectorStoreInfo } from "@shared/proto/index.cline"
 import { Mode } from "@shared/storage/types"
 import { VSCodeButton } from "@vscode/webview-ui-toolkit/react"
 import React, { useEffect, useMemo, useRef, useState } from "react"
-// import { normalizeApiConfiguration } from "../utils/providerUtils"
-// import { useApiConfigurationHandlers } from "../utils/useApiConfigurationHandlers"
+import { normalizeApiConfiguration } from "../utils/providerUtils"
+import { useApiConfigurationHandlers } from "../utils/useApiConfigurationHandlers"
 
 export interface OcaVectorPickerProps {
 	apiConfiguration: ApiConfiguration | undefined
-	isPopup?: boolean
 	currentMode: Mode
 	ocaKbs: Record<string, VectorStoreInfo>
 	onRefresh: () => void | Promise<void>
 }
 
 const OcaVectorPicker: React.FC<OcaVectorPickerProps> = ({
-	// apiConfiguration,
-	// isPopup,
-	// currentMode,
+	apiConfiguration,
+	currentMode,
 	ocaKbs,
 	onRefresh,
 }: OcaVectorPickerProps) => {
-	// const { handleModeFieldsChange } = useApiConfigurationHandlers()
+	const { handleModeFieldChange } = useApiConfigurationHandlers()
 
-	// const handleVectorChange = async (newModelId: string) => {
-	// 	await handleModeFieldsChange(
-	// 		{
-	// 			ocaModelId: { plan: "planModeOcaModelId", act: "actModeOcaModelId" },
-	// 			ocaModelInfo: { plan: "planModeOcaModelInfo", act: "actModeOcaModelInfo" },
-	// 		},
-	// 		{
-	// 			ocaModelId: newModelId,
-	// 			ocaModelInfo: ocaModels[newModelId],
-	// 		},
-	// 		currentMode,
-	// 	)
-	// }
+	const handleKbChange = async (kbs: string[]) => {
+		await handleModeFieldChange({ plan: "planModeOcaVectorIds", act: "actModeOcaVectorIds" }, kbs, currentMode)
+	}
 
 	const kbIds = useMemo(() => {
 		return Object.keys(ocaKbs || []).sort((a, b) => a.localeCompare(b))
 	}, [ocaKbs])
 
+	const { selectedVectorIds } = useMemo(() => {
+		return normalizeApiConfiguration(apiConfiguration, currentMode)
+	}, [apiConfiguration, currentMode])
+
 	const handleRefreshToken = async () => {
 		await onRefresh?.()
+	}
+
+	const toggleOption = async (option: { id: string; name: string }) => {
+		const prevVectorIds = selectedVectorIds || []
+		const newVectorIds = prevVectorIds.includes(option.id)
+			? prevVectorIds.filter((o) => o !== option.id)
+			: [...prevVectorIds, option.id]
+		await handleKbChange(newVectorIds)
 	}
 
 	return (
@@ -50,8 +50,13 @@ const OcaVectorPicker: React.FC<OcaVectorPickerProps> = ({
 			<label className="font-medium text-[12px] mt-[10px] mb-[2px]">Knowledge Base</label>
 			<MultiSelectDropdown
 				options={kbIds.map((kbId) => {
-					return ocaKbs[kbId].name
+					return {
+						id: kbId,
+						name: ocaKbs[kbId].name,
+					}
 				})}
+				selectedIds={selectedVectorIds || []}
+				toggleOption={toggleOption}
 			/>
 			<VSCodeButton
 				onClick={handleRefreshToken}
@@ -72,9 +77,17 @@ const OcaVectorPicker: React.FC<OcaVectorPickerProps> = ({
 
 export default OcaVectorPicker
 
-const MultiSelectDropdown: React.FC<{ options: string[] }> = ({ options }) => {
+interface MultiSelectDropdownProps {
+	options: {
+		id: string
+		name: string
+	}[]
+	selectedIds: string[]
+	toggleOption: (option: { id: string; name: string }) => Promise<void>
+}
+
+const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({ options, selectedIds, toggleOption }) => {
 	const [open, setOpen] = useState<boolean>(false)
-	const [selected, setSelected] = useState<string[]>([])
 	const wrapperRef = useRef<HTMLDivElement>(null)
 
 	useEffect(() => {
@@ -87,11 +100,10 @@ const MultiSelectDropdown: React.FC<{ options: string[] }> = ({ options }) => {
 		return () => document.removeEventListener("mousedown", handleClickOutside)
 	}, [])
 
-	const toggleOption = (option: string) => {
-		setSelected((prev) => (prev.includes(option) ? prev.filter((o) => o !== option) : [...prev, option]))
-	}
-
-	const selectedLabel = selected.length === 0 ? "Select options..." : selected.join(", ")
+	const selectedLabel =
+		selectedIds.length === 0
+			? "Select options..."
+			: selectedIds.map((selectedId) => options.filter((option) => selectedId === option.id)[0].name).join(", ")
 
 	return (
 		<div
@@ -171,18 +183,18 @@ const MultiSelectDropdown: React.FC<{ options: string[] }> = ({ options }) => {
 						padding: 4,
 					}}>
 					{options.map((option) => {
-						const checked = selected.includes(option)
+						const checked = selectedIds.includes(option.id)
 						return (
 							<div
 								aria-selected={checked}
-								key={option}
-								onClick={(e) => {
+								key={option.id}
+								onClick={async (e) => {
 									e.stopPropagation()
-									toggleOption(option)
+									await toggleOption(option)
 								}}
-								onKeyDown={(e) => {
+								onKeyDown={async (e) => {
 									if (e.key === " " || e.key === "Enter") {
-										toggleOption(option)
+										await toggleOption(option)
 									}
 								}}
 								role="option"
@@ -208,7 +220,7 @@ const MultiSelectDropdown: React.FC<{ options: string[] }> = ({ options }) => {
 									tabIndex={-1}
 									type="checkbox"
 								/>
-								<span style={{ flex: 1 }}>{option}</span>
+								<span style={{ flex: 1 }}>{option.name}</span>
 							</div>
 						)
 					})}

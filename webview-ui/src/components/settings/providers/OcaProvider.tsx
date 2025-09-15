@@ -395,7 +395,6 @@ export const OcaProvider = ({ isPopup, currentMode }: OcaProviderProps) => {
 					<OcaVectorPicker
 						apiConfiguration={apiConfiguration}
 						currentMode={currentMode}
-						isPopup={isPopup}
 						ocaKbs={ocaKbs}
 						onRefresh={handleKbRefresh}
 					/>

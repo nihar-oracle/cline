@@ -349,6 +349,7 @@ export class StateManager {
 			planModeVercelAiGatewayModelInfo,
 			planModeOcaModelId,
 			planModeOcaModelInfo,
+			planModeOcaVectorIds,
 			// Act mode configurations
 			actModeApiProvider,
 			actModeApiModelId,
@@ -383,6 +384,7 @@ export class StateManager {
 			actModeVercelAiGatewayModelInfo,
 			actModeOcaModelId,
 			actModeOcaModelInfo,
+			actModeOcaVectorIds,
 		} = apiConfiguration
 
 		// Batch update global state keys
@@ -421,6 +423,7 @@ export class StateManager {
 			planModeVercelAiGatewayModelInfo,
 			planModeOcaModelId,
 			planModeOcaModelInfo,
+			planModeOcaVectorIds,
 
 			// Act mode configuration updates
 			actModeApiProvider,
@@ -456,6 +459,7 @@ export class StateManager {
 			actModeVercelAiGatewayModelInfo,
 			actModeOcaModelId,
 			actModeOcaModelInfo,
+			actModeOcaVectorIds,
 
 			// Global state updates
 			awsRegion,
@@ -820,6 +824,7 @@ export class StateManager {
 			planModeVercelAiGatewayModelInfo: this.globalStateCache["planModeVercelAiGatewayModelInfo"],
 			planModeOcaModelId: this.globalStateCache["planModeOcaModelId"],
 			planModeOcaModelInfo: this.globalStateCache["planModeOcaModelInfo"],
+			planModeOcaVectorIds: this.globalStateCache["planModeOcaVectorIds"],
 
 			// Act mode configurations
 			actModeApiProvider: this.globalStateCache["actModeApiProvider"],
@@ -855,6 +860,7 @@ export class StateManager {
 			actModeVercelAiGatewayModelInfo: this.globalStateCache["actModeVercelAiGatewayModelInfo"],
 			actModeOcaModelId: this.globalStateCache["actModeOcaModelId"],
 			actModeOcaModelInfo: this.globalStateCache["actModeOcaModelInfo"],
+			actModeOcaVectorIds: this.globalStateCache["actModeOcaVectorIds"],
 		}
 	}
 }

@@ -20,12 +20,11 @@ export async function refreshOcaVectors(controller: Controller, request: StringR
 		const ocaAccessToken = controller.stateManager.getSecretKey("ocaApiKey")
 		const baseUrl = request.value || DEFAULT_OCA_BASE_URL
 		const vectorsUrl = `${baseUrl}/vector_store/list`
-		console.log(vectorsUrl)
 		const headers = await createOcaHeaders(ocaAccessToken!, "models-refresh")
 		Logger.log(`Making refresh oca model request with customer opc-request-id: ${headers["opc-request-id"]}`)
 		const response = await axios.get(vectorsUrl, { headers })
-		console.log("Response: ", response.data.data)
-		if (response.data?.data) {
+		if (response.data && response.data.data) {
+			const vectorIds: string[] = []
 			for (const vectorStore of response.data.data) {
 				const vectorStoreId = vectorStore.vector_store_id
 				if (typeof vectorStoreId !== "string" || !vectorStoreId) {
@@ -36,8 +35,41 @@ export async function refreshOcaVectors(controller: Controller, request: StringR
 					name: vectorStore.vector_store_name,
 					description: vectorStore.vector_store_description,
 				})
+				vectorIds.push(vectorStoreId)
 			}
 			console.log("Oca vectors fetched", vectors)
+
+			// Fetch current config
+			const apiConfiguration = controller.stateManager.getApiConfiguration()
+			const updatedConfig = { ...apiConfiguration }
+
+			// Which mode(s) to update?
+			const planActSeparateModelsSetting = controller.stateManager.getGlobalStateKey("planActSeparateModelsSetting")
+			const currentMode = (await controller.getCurrentMode?.()) ?? "plan"
+			const planModeSelectedVectorId: string[] = apiConfiguration?.planModeOcaVectorIds
+				? apiConfiguration?.planModeOcaVectorIds.filter(
+						(vectorId) => vectorIds.filter((secondVectorId) => vectorId === secondVectorId).length >= 1,
+					)
+				: []
+			const actModeSelectedVectorId: string[] = apiConfiguration?.actModeOcaVectorIds
+				? apiConfiguration?.actModeOcaVectorIds.filter(
+						(vectorId) => vectorIds.filter((secondVectorId) => vectorId === secondVectorId).length >= 1,
+					)
+				: []
+
+			// Save new model selection(s) to configuration object, per plan/act mode setting
+			if (planActSeparateModelsSetting) {
+				if (currentMode === "plan") {
+					updatedConfig.planModeOcaVectorIds = planModeSelectedVectorId
+				} else {
+					updatedConfig.actModeOcaVectorIds = actModeSelectedVectorId
+				}
+			} else {
+				updatedConfig.planModeOcaVectorIds = planModeSelectedVectorId
+				updatedConfig.actModeOcaVectorIds = actModeSelectedVectorId
+			}
+
+			controller.stateManager.setApiConfiguration(updatedConfig)
 
 			HostProvider.window.showMessage({
 				type: ShowMessageType.INFORMATION,
