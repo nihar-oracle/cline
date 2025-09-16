@@ -392,6 +392,7 @@ function createHandlerForProvider(
 						? options.planModeOcaModelInfo?.supportsPromptCache
 						: options.actModeOcaModelInfo?.supportsPromptCache,
 				taskId: options.ulid,
+				vectorIds: mode === "plan" ? options.planModeOcaVectorIds : options.actModeOcaVectorIds,
 			})
 		default:
 			return new AnthropicHandler({

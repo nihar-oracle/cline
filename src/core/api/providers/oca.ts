@@ -21,7 +21,7 @@ export interface OcaHandlerOptions extends CommonApiHandlerOptions {
 	thinkingBudgetTokens?: number
 	ocaUsePromptCache?: boolean
 	taskId?: string
-	vectorIds: string[]
+	vectorIds?: string[]
 }
 
 export class OcaHandler implements ApiHandler {
@@ -195,22 +195,34 @@ export class OcaHandler implements ApiHandler {
 			...(this.options.taskId && {
 				litellm_session_id: `cline-${this.options.taskId}`,
 			}),
-			// tools: [{
-			// 	type: "file_search",
-			// 	"vector_store_ids": ["<vector_store_id_1>", "<vector_store_id_2>"]
-			// }]
 			tools: [
 				{
-					type: "function",
-					function: {
+					type: "custom",
+					custom: {
 						name: "file_search",
-						parameters: {
-							vectors: ["<vector_store_id_1>", "<vector_store_id_2>"],
+						description: "",
+						format: {
+							type: "grammar",
+							grammar: {
+								definition: "'<vector_store_id_1>', '<vector_store_id_2>'",
+								syntax: "regex",
+							},
 						},
-						description: "This is vector search for RAG",
 					},
 				},
 			],
+			// tools: [
+			// 	{
+			// 		type: "function",
+			// 		function: {
+			// 			name: "file_search",
+			// 			parameters: {
+			// 				vectors: this.getVectorStores(),
+			// 			},
+			// 			description: "This is vector search for RAG",
+			// 		},
+			// 	},
+			// ],
 		}
 
 		console.log("Input: ", requestObject)
@@ -279,6 +291,14 @@ export class OcaHandler implements ApiHandler {
 		return {
 			id: this.options.ocaModelId || liteLlmDefaultModelId,
 			info: this.options.ocaModelInfo || liteLlmModelInfoSaneDefaults,
+		}
+	}
+
+	getVectorStores() {
+		if (this.options.vectorIds) {
+			return this.options.vectorIds
+		} else {
+			return []
 		}
 	}
 }
