@@ -100,8 +100,11 @@ const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({ options, sele
 		return () => document.removeEventListener("mousedown", handleClickOutside)
 	}, [])
 
+	console.log("Selected IDS: ", selectedIds)
+	console.log("Options: ", options)
+
 	const selectedLabel =
-		selectedIds.length === 0
+		selectedIds.length === 0 || options.length === 0
 			? "Select options..."
 			: selectedIds.map((selectedId) => options.filter((option) => selectedId === option.id)[0].name).join(", ")
 

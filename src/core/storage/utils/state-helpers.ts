@@ -263,6 +263,7 @@ export async function readGlobalStateFromDisk(context: ExtensionContext): Promis
 			| undefined
 		const planModeOcaModelId = context.globalState.get("planModeOcaModelId") as string | undefined
 		const planModeOcaModelInfo = context.globalState.get("planModeOcaModelInfo") as OcaModelInfo | undefined
+		const planModeOcaVectorIds = context.globalState.get("planModeOcaVectorIds") as string[] | []
 		// Act mode configurations
 		const actModeApiProvider = context.globalState.get("actModeApiProvider") as ApiProvider | undefined
 		const actModeApiModelId = context.globalState.get("actModeApiModelId") as string | undefined
@@ -306,6 +307,7 @@ export async function readGlobalStateFromDisk(context: ExtensionContext): Promis
 		const sapAiCoreUseOrchestrationMode = context.globalState.get("sapAiCoreUseOrchestrationMode") as boolean | undefined
 		const actModeOcaModelId = context.globalState.get("actModeOcaModelId") as string | undefined
 		const actModeOcaModelInfo = context.globalState.get("actModeOcaModelInfo") as OcaModelInfo | undefined
+		const actModeOcaVectorIds = context.globalState.get("actModeOcaVectorIds") as string[] | []
 
 		let apiProvider: ApiProvider
 		if (planModeApiProvider) {
@@ -419,6 +421,7 @@ export async function readGlobalStateFromDisk(context: ExtensionContext): Promis
 			planModeVercelAiGatewayModelInfo,
 			planModeOcaModelId,
 			planModeOcaModelInfo,
+			planModeOcaVectorIds,
 			// Act mode configurations
 			actModeApiProvider: actModeApiProvider || apiProvider,
 			actModeApiModelId,
@@ -453,6 +456,7 @@ export async function readGlobalStateFromDisk(context: ExtensionContext): Promis
 			actModeVercelAiGatewayModelInfo,
 			actModeOcaModelId,
 			actModeOcaModelInfo,
+			actModeOcaVectorIds,
 
 			// Other global fields
 			focusChainSettings: focusChainSettings || DEFAULT_FOCUS_CHAIN_SETTINGS,
