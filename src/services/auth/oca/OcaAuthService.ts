@@ -15,6 +15,7 @@ export class OcaAuthService {
 	protected _authenticated: boolean = false
 	protected _ocaAuthState: OcaAuthState | null = null
 	protected _provider: OcaAuthProvider | null = null
+	protected _controller: Controller | null = null
 	protected _refreshInFlight: Promise<void> | null = null
 	protected _activeAuthStatusUpdateSubscriptions = new Set<{
 		controller: Controller
@@ -26,6 +27,13 @@ export class OcaAuthService {
 		this._provider = new OcaAuthProvider(this._config)
 	}
 
+	private requireController(): Controller {
+		if (this._controller) {
+			return this._controller
+		}
+		throw new Error("Controller has not been initialized")
+	}
+
 	private requireProvider(): OcaAuthProvider {
 		if (!this._provider) {
 			throw new Error("Auth provider is not set")
@@ -35,10 +43,16 @@ export class OcaAuthService {
 
 	/**
 	 * Gets the singleton instance of OcaAuthService.
+	 * First call must provide a Controller (or have been set previously).
 	 */
-	public static getInstance(): OcaAuthService {
+	public static getInstance(controller?: Controller): OcaAuthService {
 		if (!OcaAuthService.instance) {
 			OcaAuthService.instance = new OcaAuthService()
+		}
+		if (controller) {
+			OcaAuthService.instance._controller = controller
+		} else if (!OcaAuthService.instance._controller) {
+			throw new Error("Controller must be provided on first call to OcaAuthService.getInstance")
 		}
 		return OcaAuthService.instance
 	}
@@ -63,7 +77,7 @@ export class OcaAuthService {
 		return this._authenticated
 	}
 
-	private async refreshAuthState(controller: Controller): Promise<void> {
+	private async refreshAuthState(): Promise<void> {
 		// Single-flight to avoid concurrent refresh storms
 		if (this._refreshInFlight) {
 			await this._refreshInFlight
@@ -71,7 +85,7 @@ export class OcaAuthService {
 		}
 		this._refreshInFlight = (async () => {
 			try {
-				await this.restoreRefreshTokenAndRetrieveAuthInfo(controller)
+				await this.restoreRefreshTokenAndRetrieveAuthInfo()
 			} finally {
 				this._refreshInFlight = null
 			}
@@ -79,10 +93,11 @@ export class OcaAuthService {
 		await this._refreshInFlight
 	}
 
-	async getAuthToken(controller: Controller): Promise<string | null> {
+	async getAuthToken(): Promise<string | null> {
+		this.requireController()
 		// Ensure we have a state with a token
 		if (!this._ocaAuthState || !this._ocaAuthState.apiKey) {
-			await this.refreshAuthState(controller)
+			await this.refreshAuthState()
 			return this._ocaAuthState?.apiKey ?? null
 		}
 
@@ -98,15 +113,16 @@ export class OcaAuthService {
 		}
 
 		if (shouldRefresh) {
-			await this.refreshAuthState(controller)
+			await this.refreshAuthState()
 		}
 
 		return this._ocaAuthState?.apiKey ?? null
 	}
 
-	async createAuthRequest(controller: Controller): Promise<ProtoString> {
+	async createAuthRequest(): Promise<ProtoString> {
+		this.requireController()
 		if (this._authenticated) {
-			this.sendAuthStatusUpdate(controller)
+			this.sendAuthStatusUpdate()
 			return ProtoString.create({ value: "Already authenticated" })
 		}
 		if (!this._config.idcs_url) {
@@ -123,41 +139,45 @@ export class OcaAuthService {
 		return ProtoString.create({ value: authUrlString })
 	}
 
-	async handleDeauth(controller: Controller): Promise<void> {
+	async handleDeauth(): Promise<void> {
+		const ctrl = this.requireController()
 		try {
-			this.clearAuth(controller)
+			this.clearAuth()
 			this._ocaAuthState = null
 			this._authenticated = false
-			await this.sendAuthStatusUpdate(controller)
+			await this.sendAuthStatusUpdate()
 		} catch (error) {
 			console.error("Error signing out:", error)
 			throw error
 		}
 	}
 
-	private clearAuth(controller: Controller): void {
-		this.requireProvider().clearAuth(controller)
+	private clearAuth(): void {
+		const ctrl = this.requireController()
+		this.requireProvider().clearAuth(ctrl)
 	}
 
-	async handleAuthCallback(controller: Controller, code: string, state: string): Promise<void> {
+	async handleAuthCallback(code: string, state: string): Promise<void> {
 		const provider = this.requireProvider()
+		const ctrl = this.requireController()
 		try {
-			this._ocaAuthState = await provider.signIn(controller, code, state)
+			this._ocaAuthState = await provider.signIn(ctrl, code, state)
 			this._authenticated = true
-			await this.sendAuthStatusUpdate(controller)
+			await this.sendAuthStatusUpdate()
 		} catch (error) {
 			console.error("Error signing in with custom token:", error)
 			throw error
 		}
 	}
 
-	async restoreRefreshTokenAndRetrieveAuthInfo(controller: Controller): Promise<void> {
+	async restoreRefreshTokenAndRetrieveAuthInfo(): Promise<void> {
 		const provider = this.requireProvider()
+		const ctrl = this.requireController()
 		try {
-			this._ocaAuthState = await provider.retrieveOcaAuthState(controller)
+			this._ocaAuthState = await provider.retrieveOcaAuthState(ctrl)
 			if (this._ocaAuthState) {
 				this._authenticated = true
-				await this.sendAuthStatusUpdate(controller)
+				await this.sendAuthStatusUpdate()
 			} else {
 				console.warn("No user found after restoring auth token")
 				this._authenticated = false
@@ -171,17 +191,17 @@ export class OcaAuthService {
 	}
 
 	async subscribeToAuthStatusUpdate(
-		controller: Controller,
 		_request: EmptyRequest,
 		responseStream: StreamingResponseHandler<OcaAuthState>,
 		requestId?: string,
 	): Promise<void> {
 		console.log("Subscribing to authStatusUpdate")
+		const ctrl = this.requireController()
 		if (!this._ocaAuthState) {
-			this._ocaAuthState = await this.requireProvider().getExistingAuthState(controller)
+			this._ocaAuthState = await this.requireProvider().getExistingAuthState(ctrl)
 			this._authenticated = !!this._ocaAuthState
 		}
-		const entry = { controller, responseStream }
+		const entry = { controller: ctrl, responseStream }
 		this._activeAuthStatusUpdateSubscriptions.add(entry)
 		const cleanup = () => {
 			this._activeAuthStatusUpdateSubscriptions.delete(entry)
@@ -190,14 +210,14 @@ export class OcaAuthService {
 			getRequestRegistry().registerRequest(requestId, cleanup, { type: "authStatusUpdate_subscription" }, responseStream)
 		}
 		try {
-			await this.sendAuthStatusUpdate(controller)
+			await this.sendAuthStatusUpdate()
 		} catch (error) {
 			console.error("Error sending initial auth status:", error)
 			this._activeAuthStatusUpdateSubscriptions.delete(entry)
 		}
 	}
 
-	async sendAuthStatusUpdate(_controller: Controller): Promise<void> {
+	async sendAuthStatusUpdate(): Promise<void> {
 		if (this._activeAuthStatusUpdateSubscriptions.size === 0) {
 			return
 		}

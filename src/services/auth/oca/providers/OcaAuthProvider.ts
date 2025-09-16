@@ -2,6 +2,7 @@ import { OcaAuthState, OcaUserInfo } from "@shared/proto/cline/oca_account"
 import axios from "axios"
 import { jwtDecode } from "jwt-decode"
 import { Controller } from "@/core/controller"
+import { getProxyAgents } from "@/services/auth/oca/utils/utils"
 
 import { generateCodeVerifier, generateRandomString, pkceChallengeFromVerifier } from "../utils/utils"
 
@@ -77,7 +78,7 @@ export class OcaAuthProvider {
 		}
 		try {
 			const { idcs_url, client_id } = this._config
-			const discovery = await axios.get(`${idcs_url}/.well-known/openid-configuration`)
+			const discovery = await axios.get(`${idcs_url}/.well-known/openid-configuration`, { ...getProxyAgents() })
 			const tokenEndpoint = discovery.data.token_endpoint
 			const params: any = {
 				grant_type: "refresh_token",
@@ -86,6 +87,7 @@ export class OcaAuthProvider {
 			}
 			const tokenResponse = await axios.post(tokenEndpoint, new URLSearchParams(params), {
 				headers: { "Content-Type": "application/x-www-form-urlencoded" },
+				...getProxyAgents(),
 			})
 			const accessToken = tokenResponse.data.access_token
 			const userInfo: OcaUserInfo = await this.getUserAccountInfo(accessToken)
@@ -134,7 +136,7 @@ export class OcaAuthProvider {
 			}
 			const { code_verifier, nonce, redirect_uri } = entry
 			OcaAuthProvider.pkceStateMap.delete(state)
-			const discovery = await axios.get(`${idcs_url}/.well-known/openid-configuration`)
+			const discovery = await axios.get(`${idcs_url}/.well-known/openid-configuration`, { ...getProxyAgents() })
 			const tokenEndpoint = discovery.data.token_endpoint
 			const params: any = {
 				grant_type: "authorization_code",
@@ -145,6 +147,7 @@ export class OcaAuthProvider {
 			}
 			const tokenResponse = await axios.post(tokenEndpoint, new URLSearchParams(params), {
 				headers: { "Content-Type": "application/x-www-form-urlencoded" },
+				...getProxyAgents(),
 			})
 			// Step 1: Nonce validation
 			const idToken = tokenResponse.data.id_token

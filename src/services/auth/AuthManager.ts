@@ -1,0 +1,117 @@
+import type { Controller } from "@/core/controller"
+import { AuthService } from "@/services/auth/AuthService"
+import { OcaAuthService } from "@/services/auth/oca/OcaAuthService"
+
+/**
+ * AuthManager
+ * - Singleton coordinator for auth services
+ * - Stores a Controller reference
+ * - Lazily initializes AuthService and OcaAuthService on first access
+ * - Exposes get/set methods and property accessors
+ */
+export class AuthManager {
+	private static instance: AuthManager | null = null
+
+	private controller: Controller
+	private _authService?: AuthService
+	private _ocaAuthService?: OcaAuthService
+
+	private constructor(controller: Controller) {
+		this.controller = controller
+	}
+
+	/**
+	 * Get the singleton instance.
+	 * - First call requires a Controller.
+	 * - Subsequent calls may omit controller; passing a controller updates the stored one.
+	 */
+	public static getInstance(controller?: Controller): AuthManager {
+		if (!AuthManager.instance) {
+			if (!controller) {
+				throw new Error("AuthManager.getInstance requires a Controller on first call")
+			}
+			AuthManager.instance = new AuthManager(controller)
+		} else if (controller) {
+			AuthManager.instance.setController(controller)
+		}
+		return AuthManager.instance
+	}
+
+	/**
+	 * Update the stored Controller and propagate to initialized services.
+	 */
+	public setController(controller: Controller): void {
+		this.controller = controller
+		if (this._authService) {
+			// AuthService supports controller setter
+			this._authService.controller = controller
+		}
+		if (this._ocaAuthService) {
+			// Ensure OCA service has the latest controller
+			OcaAuthService.getInstance(controller)
+		}
+	}
+
+	// ----- Cline Account AuthService -----
+
+	/**
+	 * Lazy getter for AuthService.
+	 * Ensures the current controller is set.
+	 */
+	public getAuthService(): AuthService {
+		if (!this._authService) {
+			this._authService = AuthService.getInstance(this.controller)
+		} else {
+			this._authService.controller = this.controller
+		}
+		return this._authService
+	}
+
+	/**
+	 * Setter to inject/override the AuthService instance.
+	 */
+	public setAuthService(service: AuthService): void {
+		this._authService = service
+	}
+
+	// Property accessors (convenience)
+	public get authService(): AuthService {
+		return this.getAuthService()
+	}
+	public set authService(service: AuthService) {
+		this.setAuthService(service)
+	}
+
+	// ----- OCA AuthService -----
+
+	/**
+	 * Lazy getter for OcaAuthService.
+	 * Ensures a controller is provided to the OCA singleton.
+	 */
+	public getOcaAuthService(): OcaAuthService {
+		if (!this._ocaAuthService) {
+			this._ocaAuthService = OcaAuthService.getInstance(this.controller)
+		} else {
+			// Refresh controller on the singleton to keep it current
+			OcaAuthService.getInstance(this.controller)
+		}
+		return this._ocaAuthService
+	}
+
+	/**
+	 * Setter to inject/override the OcaAuthService instance.
+	 */
+	public setOcaAuthService(service: OcaAuthService): void {
+		this._ocaAuthService = service
+	}
+
+	// Property accessors (convenience)
+	public get ocaAuthService(): OcaAuthService {
+		return this.getOcaAuthService()
+	}
+	public set ocaAuthService(service: OcaAuthService) {
+		this.setOcaAuthService(service)
+	}
+}
+
+export default AuthManager

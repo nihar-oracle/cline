@@ -239,9 +239,8 @@ message ApiConfiguration {
   optional OpenRouterModelInfo plan_mode_huawei_cloud_maas_model_info = 121;
   optional string plan_mode_vercel_ai_gateway_model_id = 122;
   optional OpenRouterModelInfo plan_mode_vercel_ai_gateway_model_info = 123;
-  optional string plan_mode_vercel_ai_gateway_model_info = 124;
-  optional string plan_mode_oca_model_id = 125;
-  optional string plan_mode_oca_model_info = 126;
+  optional string plan_mode_oca_model_id = 124;
+  optional OcaModelInfo plan_mode_oca_model_info = 125;
   
   // Act mode configurations
   optional ApiProvider act_mode_api_provider = 200;

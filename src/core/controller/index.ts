@@ -24,8 +24,7 @@ import * as vscode from "vscode"
 import { clineEnvConfig } from "@/config"
 import { HostProvider } from "@/hosts/host-provider"
 import { ExtensionRegistryInfo } from "@/registry"
-import { AuthService } from "@/services/auth/AuthService"
-import { OcaAuthService } from "@/services/auth/oca/OcaAuthService"
+import { AuthManager } from "@/services/auth/AuthManager"
 import { getDistinctId } from "@/services/logging/distinctId"
 import { telemetryService } from "@/services/telemetry"
 import { ShowMessageType } from "@/shared/proto/host/window"
@@ -50,7 +49,7 @@ export class Controller {
 
 	mcpHub: McpHub
 	accountService: ClineAccountService
-	authService: AuthService
+	authManager: AuthManager
 	readonly stateManager: StateManager
 
 	// NEW: Add workspace manager (optional initially)
@@ -65,13 +64,13 @@ export class Controller {
 		HostProvider.get().logToChannel("ClineProvider instantiated")
 		this.accountService = ClineAccountService.getInstance()
 		this.stateManager = new StateManager(context)
-		this.authService = AuthService.getInstance(this)
+		this.authManager = AuthManager.getInstance(this)
 
 		// Initialize cache service asynchronously - critical for extension functionality
 		this.stateManager
 			.initialize()
 			.then(() => {
-				this.authService.restoreRefreshTokenAndRetrieveAuthInfo()
+				this.authManager.authService.restoreRefreshTokenAndRetrieveAuthInfo()
 			})
 			.catch((error) => {
 				console.error(
@@ -168,7 +167,7 @@ export class Controller {
 	// Oca Auth methods
 	async handleOcaSignOut() {
 		try {
-			OcaAuthService.getInstance().handleDeauth(this)
+			this.authManager.ocaAuthService.handleDeauth()
 			await this.postStateToWebview()
 			HostProvider.window.showMessage({
 				type: ShowMessageType.INFORMATION,
@@ -328,7 +327,7 @@ export class Controller {
 		// Update API handler with new mode (buildApiHandler now selects provider based on mode)
 		if (this.task) {
 			const apiConfiguration = this.stateManager.getApiConfiguration()
-			this.task.api = buildApiHandler({ ...apiConfiguration, ulid: this.task.ulid }, modeToSwitchTo, this)
+			this.task.api = buildApiHandler({ ...apiConfiguration, ulid: this.task.ulid }, modeToSwitchTo)
 		}
 
 		await this.postStateToWebview()
@@ -387,7 +386,7 @@ export class Controller {
 
 	async handleAuthCallback(customToken: string, provider: string | null = null) {
 		try {
-			await this.authService.handleAuthCallback(customToken, provider ? provider : "google")
+			await this.authManager.authService.handleAuthCallback(customToken, provider ? provider : "google")
 
 			const clineProvider: ApiProvider = "cline"
 
@@ -421,7 +420,7 @@ export class Controller {
 			this.stateManager.setGlobalState("welcomeViewCompleted", true)
 
 			if (this.task) {
-				this.task.api = buildApiHandler({ ...updatedConfig, ulid: this.task.ulid }, currentMode, this)
+				this.task.api = buildApiHandler({ ...updatedConfig, ulid: this.task.ulid }, currentMode)
 			}
 
 			await this.postStateToWebview()
@@ -438,7 +437,7 @@ export class Controller {
 
 	async handleOcaAuthCallback(code: string, state: string) {
 		try {
-			await OcaAuthService.getInstance().handleAuthCallback(this, code, state)
+			await this.authManager.ocaAuthService.handleAuthCallback(code, state)
 
 			const ocaProvider: ApiProvider = "oca"
 
@@ -472,7 +471,7 @@ export class Controller {
 			this.stateManager.setGlobalState("welcomeViewCompleted", true)
 
 			if (this.task) {
-				this.task.api = buildApiHandler({ ...updatedConfig, ulid: this.task.ulid }, currentMode, this)
+				this.task.api = buildApiHandler({ ...updatedConfig, ulid: this.task.ulid }, currentMode)
 			}
 
 			await this.postStateToWebview()
@@ -616,7 +615,7 @@ export class Controller {
 
 		await this.postStateToWebview()
 		if (this.task) {
-			this.task.api = buildApiHandler({ ...updatedConfig, ulid: this.task.ulid }, currentMode, this)
+			this.task.api = buildApiHandler({ ...updatedConfig, ulid: this.task.ulid }, currentMode)
 		}
 		// Dont send settingsButtonClicked because its bad ux if user is on welcome
 	}
@@ -739,7 +738,7 @@ export class Controller {
 		const defaultTerminalProfile = this.stateManager.getGlobalStateKey("defaultTerminalProfile")
 		const isNewUser = this.stateManager.getGlobalStateKey("isNewUser")
 		const welcomeViewCompleted = Boolean(
-			this.stateManager.getGlobalStateKey("welcomeViewCompleted") || this.authService.getInfo()?.user?.uid,
+			this.stateManager.getGlobalStateKey("welcomeViewCompleted") || this.authManager.authService.getInfo()?.user?.uid,
 		)
 		const customPrompt = this.stateManager.getGlobalStateKey("customPrompt")
 		const mcpResponsesCollapsed = this.stateManager.getGlobalStateKey("mcpResponsesCollapsed")

@@ -11,5 +11,5 @@ import { Controller } from "../index"
  * @returns The login URL as a string.
  */
 export async function ocaAccountLoginClicked(controller: Controller, _: EmptyRequest): Promise<ProtoString> {
-	return await OcaAuthService.getInstance().createAuthRequest(controller)
+	return await OcaAuthService.getInstance(controller).createAuthRequest()
 }

@@ -2,8 +2,7 @@ import { Anthropic } from "@anthropic-ai/sdk"
 import { LiteLLMModelInfo, liteLlmDefaultModelId, liteLlmModelInfoSaneDefaults } from "@shared/api"
 import OpenAI, { APIError, OpenAIError } from "openai"
 import type { FinalRequestOptions, Headers as OpenAIHeaders } from "openai/core"
-import type { Controller } from "@/core/controller"
-import { OcaAuthService } from "@/services/auth/oca/OcaAuthService"
+import AuthManager from "@/services/auth/AuthManager"
 import { DEFAULT_OCA_BASE_URL, OCI_HEADER_OPC_REQUEST_ID } from "@/services/auth/oca/utils/constants"
 import { createOcaHeaders } from "@/services/auth/oca/utils/utils"
 import { Logger } from "@/services/logging/Logger"
@@ -13,7 +12,6 @@ import { convertToOpenAiMessages } from "../transform/openai-format"
 import { ApiStream } from "../transform/stream"
 
 export interface OcaHandlerOptions extends CommonApiHandlerOptions {
-	controller: Controller
 	ocaBaseUrl?: string
 	ocaModelId?: string
 	ocaModelInfo?: LiteLLMModelInfo
@@ -33,7 +31,7 @@ export class OcaHandler implements ApiHandler {
 	protected initializeClient(options: OcaHandlerOptions) {
 		return new (class OCIOpenAI extends OpenAI {
 			protected override async prepareOptions(opts: FinalRequestOptions<unknown>): Promise<void> {
-				const token = await OcaAuthService.getInstance()?.getAuthToken(options.controller)
+				const token = await AuthManager.getInstance().ocaAuthService?.getAuthToken()
 				if (!token) {
 					throw new OpenAIError("Unable to handle auth, Oracle Code Assist (OCA) access token is not available")
 				}
@@ -95,7 +93,7 @@ export class OcaHandler implements ApiHandler {
 		// Reference: https://github.com/BerriAI/litellm/blob/122ee634f434014267af104814022af1d9a0882f/litellm/proxy/spend_tracking/spend_management_endpoints.py#L1473
 		const client = this.ensureClient()
 		const modelId = this.options.ocaModelId || liteLlmDefaultModelId
-		const token = await OcaAuthService.getInstance()?.getAuthToken(this.options.controller)
+		const token = await AuthManager.getInstance().ocaAuthService?.getAuthToken()
 		if (!token) {
 			throw new OpenAIError("Unable to handle auth, Oracle Code Assist (OCA) access token is not available")
 		}
@@ -162,10 +160,12 @@ export class OcaHandler implements ApiHandler {
 		}
 
 		// Find the last two user messages to apply caching
-		const userMsgIndices = formattedMessages.reduce(
-			(acc, msg, index) => (msg.role === "user" ? [...acc, index] : acc),
-			[] as number[],
-		)
+		const userMsgIndices = formattedMessages.reduce((acc, msg, index) => {
+			if (msg.role === "user") {
+				acc.push(index)
+			}
+			return acc
+		}, [] as number[])
 		const lastUserMsgIndex = userMsgIndices[userMsgIndices.length - 1] ?? -1
 		const secondLastUserMsgIndex = userMsgIndices[userMsgIndices.length - 2] ?? -1
 

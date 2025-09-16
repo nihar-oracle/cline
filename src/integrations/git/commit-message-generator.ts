@@ -1,6 +1,5 @@
 import { buildApiHandler } from "@core/api"
 import * as vscode from "vscode"
-import { Controller } from "@/core/controller"
 import { StateManager } from "@/core/storage/StateManager"
 import { HostProvider } from "@/hosts/host-provider"
 import { ShowMessageType } from "@/shared/proto/host/window"
@@ -92,7 +91,7 @@ async function performCommitGeneration(context: vscode.ExtensionContext, gitDiff
 		const currentMode = "act"
 
 		// Build the API handler
-		const apiHandler = buildApiHandler(apiConfiguration, currentMode, new Controller(context, "commit-message-generator"))
+		const apiHandler = buildApiHandler(apiConfiguration, currentMode)
 
 		// Create a system prompt
 		const systemPrompt = PROMPT.system

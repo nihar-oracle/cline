@@ -24,7 +24,7 @@ export async function refreshOcaModels(controller: Controller, request: StringRe
 	}
 	const models: Record<string, OcaModelInfo> = {}
 	let defaultModelId: string | undefined
-	const ocaAccessToken = await OcaAuthService.getInstance().getAuthToken(controller)
+	const ocaAccessToken = await OcaAuthService.getInstance(controller).getAuthToken()
 	const baseUrl = request.value || DEFAULT_OCA_BASE_URL
 	const modelsUrl = `${baseUrl}/v1/model/info`
 	const headers = await createOcaHeaders(ocaAccessToken!, "models-refresh")

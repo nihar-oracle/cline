@@ -36,7 +36,7 @@ import { VscodeDiffViewProvider } from "./hosts/vscode/VscodeDiffViewProvider"
 import { VscodeWebviewProvider } from "./hosts/vscode/VscodeWebviewProvider"
 import { GitCommitGenerator } from "./integrations/git/commit-message-generator"
 import { ExtensionRegistryInfo } from "./registry"
-import { AuthService } from "./services/auth/AuthService"
+import AuthManager from "./services/auth/AuthManager"
 import { telemetryService } from "./services/telemetry"
 import { SharedUriHandler } from "./services/uri/SharedUriHandler"
 import { ShowMessageType } from "./shared/proto/host/window"
@@ -504,7 +504,7 @@ export async function activate(context: vscode.ExtensionContext) {
 				const secretValue = await context.secrets.get("clineAccountId")
 				const activeWebviewProvider = WebviewProvider.getVisibleInstance()
 				const controller = activeWebviewProvider?.controller
-				const authService = AuthService.getInstance(controller)
+				const authService = AuthManager.getInstance(controller).authService
 
 				if (secretValue) {
 					// Secret was added or updated - restore auth info (login from another window)

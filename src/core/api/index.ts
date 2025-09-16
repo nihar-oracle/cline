@@ -1,7 +1,6 @@
 import { Anthropic } from "@anthropic-ai/sdk"
 import { ApiConfiguration, ModelInfo, QwenApiRegions } from "@shared/api"
 import { Mode } from "@shared/storage/types"
-import type { Controller } from "../controller"
 import { AnthropicHandler } from "./providers/anthropic"
 import { AskSageHandler } from "./providers/asksage"
 import { BasetenHandler } from "./providers/baseten"
@@ -69,7 +68,6 @@ function createHandlerForProvider(
 	apiProvider: string | undefined,
 	options: Omit<ApiConfiguration, "apiProvider">,
 	mode: Mode,
-	controller: Controller,
 ): ApiHandler {
 	switch (apiProvider) {
 		case "anthropic":
@@ -377,7 +375,6 @@ function createHandlerForProvider(
 			})
 		case "oca":
 			return new OcaHandler({
-				controller: controller,
 				ocaBaseUrl: options.ocaBaseUrl,
 				ocaModelId: mode === "plan" ? options.planModeOcaModelId : options.actModeOcaModelId,
 				ocaModelInfo: mode === "plan" ? options.planModeOcaModelInfo : options.actModeOcaModelInfo,
@@ -401,7 +398,7 @@ function createHandlerForProvider(
 	}
 }
 
-export function buildApiHandler(configuration: ApiConfiguration, mode: Mode, controller: Controller): ApiHandler {
+export function buildApiHandler(configuration: ApiConfiguration, mode: Mode): ApiHandler {
 	const { planModeApiProvider, actModeApiProvider, ...options } = configuration
 
 	const apiProvider = mode === "plan" ? planModeApiProvider : actModeApiProvider
@@ -411,7 +408,7 @@ export function buildApiHandler(configuration: ApiConfiguration, mode: Mode, con
 	try {
 		const thinkingBudgetTokens = mode === "plan" ? options.planModeThinkingBudgetTokens : options.actModeThinkingBudgetTokens
 		if (thinkingBudgetTokens && thinkingBudgetTokens > 0) {
-			const handler = createHandlerForProvider(apiProvider, options, mode, controller)
+			const handler = createHandlerForProvider(apiProvider, options, mode)
 
 			const modelInfo = handler.getModel().info
 			if (modelInfo?.maxTokens && modelInfo.maxTokens > 0 && thinkingBudgetTokens > modelInfo.maxTokens) {
@@ -429,5 +426,5 @@ export function buildApiHandler(configuration: ApiConfiguration, mode: Mode, con
 		console.error("buildApiHandler error:", error)
 	}
 
-	return createHandlerForProvider(apiProvider, options, mode, controller)
+	return createHandlerForProvider(apiProvider, options, mode)
 }

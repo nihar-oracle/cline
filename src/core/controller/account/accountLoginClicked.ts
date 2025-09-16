@@ -1,5 +1,5 @@
 import { EmptyRequest, String } from "@shared/proto/cline/common"
-import { AuthService } from "@/services/auth/AuthService"
+import { AuthManager } from "@/services/auth/AuthManager"
 import { Controller } from "../index"
 
 /**
@@ -10,6 +10,6 @@ import { Controller } from "../index"
  * @param controller The controller instance.
  * @returns The login URL as a string.
  */
-export async function accountLoginClicked(_controller: Controller, _: EmptyRequest): Promise<String> {
-	return await AuthService.getInstance().createAuthRequest()
+export async function accountLoginClicked(controller: Controller, _: EmptyRequest): Promise<String> {
+	return await AuthManager.getInstance(controller).authService.createAuthRequest()
 }
