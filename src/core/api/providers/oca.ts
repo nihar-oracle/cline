@@ -194,34 +194,34 @@ export class OcaHandler implements ApiHandler {
 			...(this.options.taskId && {
 				litellm_session_id: `cline-${this.options.taskId}`,
 			}),
-			tools: [
-				{
-					type: "custom",
-					custom: {
-						name: "file_search",
-						description: "",
-						format: {
-							type: "grammar",
-							grammar: {
-								definition: "'<vector_store_id_1>', '<vector_store_id_2>'",
-								syntax: "regex",
-							},
-						},
-					},
-				},
-			],
 			// tools: [
 			// 	{
-			// 		type: "function",
-			// 		function: {
+			// 		type: "custom",
+			// 		custom: {
 			// 			name: "file_search",
-			// 			parameters: {
-			// 				vectors: this.getVectorStores(),
+			// 			description: "",
+			// 			format: {
+			// 				type: "grammar",
+			// 				grammar: {
+			// 					definition: "'<vector_store_id_1>', '<vector_store_id_2>'",
+			// 					syntax: "regex",
+			// 				},
 			// 			},
-			// 			description: "This is vector search for RAG",
 			// 		},
 			// 	},
 			// ],
+			tools: [
+				{
+					type: "function",
+					function: {
+						name: "file_search",
+						parameters: {
+							vectors: this.getVectorStores(),
+						},
+						description: "This is vector search for RAG",
+					},
+				},
+			],
 		}
 
 		console.log("Input: ", requestObject)
