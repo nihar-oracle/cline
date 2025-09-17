@@ -9,10 +9,5 @@ export async function subscribeToAuthStatusUpdate(
 	responseStream: StreamingResponseHandler<AuthState>,
 	requestId?: string,
 ): Promise<void> {
-	return AuthManager.getInstance(controller).authService.subscribeToAuthStatusUpdate(
-		controller,
-		request,
-		responseStream,
-		requestId,
-	)
+	return AuthManager.getInstance().authService.subscribeToAuthStatusUpdate(controller, request, responseStream, requestId)
 }

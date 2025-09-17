@@ -11,6 +11,6 @@ import type { Controller } from "../index"
  */
 export async function accountLogoutClicked(controller: Controller, _request: EmptyRequest): Promise<Empty> {
 	await controller.handleSignOut()
-	await AuthManager.getInstance(controller).authService.handleDeauth()
+	await AuthManager.getInstance().authService.handleDeauth()
 	return Empty.create({})
 }

@@ -69,7 +69,8 @@ export class Controller {
 		HostProvider.get().logToChannel("ClineProvider instantiated")
 		this.accountService = ClineAccountService.getInstance()
 		this.stateManager = new StateManager(context)
-		this.authManager = AuthManager.getInstance(this)
+		AuthManager.initialize(this)
+		this.authManager = AuthManager.getInstance()
 
 		// Initialize cache service asynchronously - critical for extension functionality
 		this.stateManager

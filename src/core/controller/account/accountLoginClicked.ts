@@ -10,6 +10,6 @@ import { Controller } from "../index"
  * @param controller The controller instance.
  * @returns The login URL as a string.
  */
-export async function accountLoginClicked(controller: Controller, _: EmptyRequest): Promise<String> {
-	return await AuthManager.getInstance(controller).authService.createAuthRequest()
+export async function accountLoginClicked(_controller: Controller, _: EmptyRequest): Promise<String> {
+	return await AuthManager.getInstance().authService.createAuthRequest()
 }

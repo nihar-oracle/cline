@@ -504,7 +504,11 @@ export async function activate(context: vscode.ExtensionContext) {
 				const secretValue = await context.secrets.get("clineAccountId")
 				const activeWebviewProvider = WebviewProvider.getVisibleInstance()
 				const controller = activeWebviewProvider?.controller
-				const authService = AuthManager.getInstance(controller).authService
+				if (!controller) {
+					throw new Error("Controller not found in active webview provider")
+				}
+				AuthManager.initialize(controller)
+				const authService = AuthManager.getInstance().authService
 
 				if (secretValue) {
 					// Secret was added or updated - restore auth info (login from another window)

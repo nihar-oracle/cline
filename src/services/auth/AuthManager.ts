@@ -21,18 +21,25 @@ export class AuthManager {
 	}
 
 	/**
-	 * Get the singleton instance.
-	 * - First call requires a Controller.
-	 * - Subsequent calls may omit controller; passing a controller updates the stored one.
+	 * Initialize the singleton with a Controller.
+	 * - Safe to call multiple times; updates controller on existing instance.
 	 */
-	public static getInstance(controller?: Controller): AuthManager {
+	public static initialize(controller: Controller): AuthManager {
 		if (!AuthManager.instance) {
-			if (!controller) {
-				throw new Error("AuthManager.getInstance requires a Controller on first call")
-			}
 			AuthManager.instance = new AuthManager(controller)
-		} else if (controller) {
+		} else {
 			AuthManager.instance.setController(controller)
+		}
+		return AuthManager.instance
+	}
+
+	/**
+	 * Get the singleton instance without requiring a Controller.
+	 * - Throws if not yet initialized. Call initialize(controller) first.
+	 */
+	public static getInstance(): AuthManager {
+		if (!AuthManager.instance) {
+			throw new Error("AuthManager has not been initialized. Call AuthManager.initialize(controller) first.")
 		}
 		return AuthManager.instance
 	}
