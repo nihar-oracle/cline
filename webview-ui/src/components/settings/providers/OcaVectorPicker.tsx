@@ -26,8 +26,7 @@ const OcaVectorPicker: React.FC<OcaVectorPickerProps> = ({
 	}
 
 	const kbIds = useMemo(() => {
-		const a = () => Object.keys(ocaKbs || []).sort((a, b) => ocaKbs[a].name.localeCompare(ocaKbs[b].name))
-		return a().concat(a()).concat(a()).concat(a()).concat(a()).concat(a()).concat(a())
+		return Object.keys(ocaKbs || []).sort((a, b) => ocaKbs[a].name.localeCompare(ocaKbs[b].name))
 	}, [ocaKbs])
 
 	const { selectedVectorIds } = useMemo(() => {
