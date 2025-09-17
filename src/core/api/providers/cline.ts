@@ -5,7 +5,8 @@ import axios from "axios"
 import OpenAI from "openai"
 import { clineEnvConfig } from "@/config"
 import { ClineAccountService } from "@/services/account/ClineAccountService"
-import { AuthService } from "@/services/auth/AuthService"
+import AuthManager from "@/services/auth/AuthManager"
+import { type AuthService } from "@/services/auth/AuthService"
 import { CLINE_ACCOUNT_AUTH_ERROR_MESSAGE } from "@/shared/ClineAccount"
 import { version as extensionVersion } from "../../../../package.json"
 import { ApiHandler, CommonApiHandlerOptions } from "../"
@@ -36,7 +37,7 @@ export class ClineHandler implements ApiHandler {
 
 	constructor(options: ClineHandlerOptions) {
 		this.options = options
-		this._authService = AuthService.getInstance()
+		this._authService = AuthManager.getInstance().authService
 	}
 
 	private async ensureClient(): Promise<OpenAI> {
