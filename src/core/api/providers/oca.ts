@@ -1,4 +1,5 @@
 import { Anthropic } from "@anthropic-ai/sdk"
+import { ChatCompletionTool } from "@sap-ai-sdk/orchestration"
 import { LiteLLMModelInfo, liteLlmDefaultModelId, liteLlmModelInfoSaneDefaults } from "@shared/api"
 import OpenAI, { APIError, OpenAIError } from "openai"
 import type { FinalRequestOptions, Headers as OpenAIHeaders } from "openai/core"
@@ -182,6 +183,14 @@ export class OcaHandler implements ApiHandler {
 			return message
 		})
 
+		const tools: ChatCompletionTool[] = []
+		if (this.getVectorStores().length > 0) {
+			tools.push({
+				type: "file_search",
+				vector_store_ids: this.getVectorStores(),
+			} as any)
+		}
+
 		const requestObject: ChatCompletionCreateParams = {
 			model: this.options.ocaModelId || liteLlmDefaultModelId,
 			messages: [enhancedSystemMessage, ...enhancedMessages],
@@ -194,12 +203,7 @@ export class OcaHandler implements ApiHandler {
 			...(this.options.taskId && {
 				litellm_session_id: `cline-${this.options.taskId}`,
 			}),
-			tools: [
-				{
-					type: "file_search",
-					vector_store_ids: this.getVectorStores(),
-				} as any,
-			],
+			tools: tools,
 		}
 
 		console.log("Input: ", requestObject)
