@@ -26,7 +26,8 @@ const OcaVectorPicker: React.FC<OcaVectorPickerProps> = ({
 	}
 
 	const kbIds = useMemo(() => {
-		return Object.keys(ocaKbs || []).sort((a, b) => a.localeCompare(b))
+		const a = () => Object.keys(ocaKbs || []).sort((a, b) => ocaKbs[a].name.localeCompare(ocaKbs[b].name))
+		return a().concat(a()).concat(a()).concat(a()).concat(a()).concat(a()).concat(a())
 	}, [ocaKbs])
 
 	const { selectedVectorIds } = useMemo(() => {
@@ -184,6 +185,8 @@ const MultiSelectDropdown: React.FC<MultiSelectDropdownProps> = ({ options, sele
 						fontFamily: "var(--vscode-font-family, inherit)",
 						marginTop: 2,
 						padding: 4,
+						maxHeight: 200,
+						overflowY: "auto",
 					}}>
 					{options.map((option) => {
 						const checked = selectedIds.includes(option.id)
