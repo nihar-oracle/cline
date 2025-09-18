@@ -2,8 +2,9 @@ import { StringRequest } from "@shared/proto/cline/common"
 import { VectorStoreInfo, VectorStores } from "@shared/proto/cline/vectors"
 import axios from "axios"
 import { HostProvider } from "@/hosts/host-provider"
+import AuthManager from "@/services/auth/AuthManager"
 import { DEFAULT_OCA_BASE_URL } from "@/services/auth/oca/utils/constants"
-import { createOcaHeaders } from "@/services/auth/oca/utils/utils"
+import { createOcaHeaders, getProxyAgents } from "@/services/auth/oca/utils/utils"
 import { Logger } from "@/services/logging/Logger"
 import { ShowMessageType } from "@/shared/proto/index.host"
 import { Controller } from ".."
@@ -16,13 +17,13 @@ import { Controller } from ".."
  */
 export async function refreshOcaVectors(controller: Controller, request: StringRequest): Promise<VectorStores> {
 	const vectors: Record<string, VectorStoreInfo> = {}
+	const ocaAccessToken = await AuthManager.getInstance().ocaAuthService.getAuthToken()
+	const baseUrl = request.value || DEFAULT_OCA_BASE_URL
+	const vectorsUrl = `${baseUrl}/vector_store/list`
+	const headers = await createOcaHeaders(ocaAccessToken!, "models-refresh")
 	try {
-		const ocaAccessToken = controller.stateManager.getSecretKey("ocaApiKey")
-		const baseUrl = request.value || DEFAULT_OCA_BASE_URL
-		const vectorsUrl = `${baseUrl}/vector_store/list`
-		const headers = await createOcaHeaders(ocaAccessToken!, "models-refresh")
 		Logger.log(`Making refresh oca model request with customer opc-request-id: ${headers["opc-request-id"]}`)
-		const response = await axios.get(vectorsUrl, { headers })
+		const response = await axios.get(vectorsUrl, { headers, ...getProxyAgents() })
 		if (response.data && response.data.data) {
 			const vectorIds: string[] = []
 			for (const vectorStore of response.data.data) {
@@ -44,7 +45,7 @@ export async function refreshOcaVectors(controller: Controller, request: StringR
 			const updatedConfig = { ...apiConfiguration }
 
 			// Which mode(s) to update?
-			const planActSeparateModelsSetting = controller.stateManager.getGlobalStateKey("planActSeparateModelsSetting")
+			const planActSeparateModelsSetting = controller.stateManager.getGlobalSettingsKey("planActSeparateModelsSetting")
 			const currentMode = (await controller.getCurrentMode?.()) ?? "plan"
 			const planModeSelectedVectorId: string[] = apiConfiguration?.planModeOcaVectorIds
 				? apiConfiguration?.planModeOcaVectorIds.filter(
