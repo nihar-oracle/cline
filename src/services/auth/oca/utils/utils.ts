@@ -70,8 +70,8 @@ export function pkceChallengeFromVerifier(verifier: string): string {
 		.replace(/=+$/, "")
 }
 
-import { HttpsProxyAgent } from "https-proxy-agent"
 import { type JwtPayload, jwtDecode } from "jwt-decode"
+import { ProxyAgent } from "proxy-agent"
 import * as vscode from "vscode"
 import { name, version } from "../../../../../package.json"
 
@@ -130,19 +130,39 @@ export async function createOcaHeaders(accessToken: string, taskId: string): Pro
 }
 
 /**
- * Proxy helpers for HTTPS/HTTP proxies via environment variables.
- * - Prioritizes HTTPS_PROXY over HTTP_PROXY
- * - Returns axios-compatible agent options when a proxy is configured
+ * Proxy helpers via environment variables.
+ * - Honors HTTPS_PROXY/HTTP_PROXY/ALL_PROXY and NO_PROXY (upper/lowercase)
+ * - Disables axios' built-in proxy by returning proxy: false and Node agents
+ * - Uses a single ProxyAgent instance for both HTTP and HTTPS
  */
-export function getProxyUrl(): string | undefined {
-	return process.env.HTTPS_PROXY || process.env.HTTP_PROXY
+function getEnv(name: string): string | undefined {
+	return process.env[name] || process.env[name.toLowerCase()]
 }
 
-export function getProxyAgents(): { httpAgent?: any; httpsAgent?: any } {
-	const proxyUrl = getProxyUrl()
-	if (!proxyUrl) return {}
-	const agent = new HttpsProxyAgent(proxyUrl)
-	return { httpAgent: agent as any, httpsAgent: agent as any }
+/**
+ * Returns the primary proxy URL, if any.
+ * Prefers HTTPS_PROXY/HTTP_PROXY, then falls back to ALL_PROXY.
+ */
+export function getProxyUrl(): string | undefined {
+	return getEnv("HTTPS_PROXY") || getEnv("HTTP_PROXY") || getEnv("ALL_PROXY")
+}
+
+let sharedProxyAgent: ProxyAgent | undefined
+
+/**
+ * Returns axios-compatible agent options that:
+ * - Use ProxyAgent (auto-detects env proxies and NO_PROXY)
+ * - Set proxy: false to avoid axios' own proxy layer
+ */
+export function getProxyAgents(): { httpAgent?: any; httpsAgent?: any; proxy?: false } {
+	// If there are no proxy-related envs, avoid creating an agent at all.
+	if (!getProxyUrl() && !getEnv("NO_PROXY") && !getEnv("no_proxy")) {
+		return {}
+	}
+	if (!sharedProxyAgent) {
+		sharedProxyAgent = new ProxyAgent()
+	}
+	return { httpAgent: sharedProxyAgent, httpsAgent: sharedProxyAgent, proxy: false as const }
 }
 
 /**
