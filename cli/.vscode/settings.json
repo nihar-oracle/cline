@@ -1,0 +1,7 @@
+{
+	"go.goroot": "/Users/niharturumella/go-sdk",
+	"go.alternateTools": {
+		"go": "/Users/niharturumella/go-sdk/bin/go",
+		"dlv": "/Users/niharturumella/go/bin/dlv"
+	}
+}

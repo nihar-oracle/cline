@@ -1,0 +1,6 @@
+./auth.go
+./config.go
+./instances.go
+./logs.go
+./task.go
+./version.go

@@ -144,6 +144,7 @@ const (
 	OPENAI_NATIVE = "openai-native"
 	XAI = "xai"
 	CEREBRAS = "cerebras"
+	OCA = "oca"
 )
 
 // AllProviders returns a slice of enabled provider IDs for the CLI build.
@@ -159,6 +160,7 @@ var AllProviders = []string{
 	"openai-native",
 	"xai",
 	"cerebras",
+	"oca",
 }
 
 // ConfigField represents a configuration field requirement
@@ -1389,6 +1391,18 @@ func GetProviderDefinitions() (map[string]ProviderDefinition, error) {
 		HasDynamicModels: false,
 		SetupInstructions: `Get your API key from https://cloud.cerebras.ai/`,
 	}
+
+	// Oca
+	definitions["oca"] = ProviderDefinition{
+		ID:              "oca",
+		Name:            "Oca",
+		RequiredFields:  getFieldsByProvider("oca", configFields, true),
+		OptionalFields:  getFieldsByProvider("oca", configFields, false),
+		Models:          modelDefinitions["oca"],
+		DefaultModelID:  "",
+		HasDynamicModels: false,
+		SetupInstructions: `Configure Oca API credentials`,
+	}
 	
 	return definitions, nil
 }
@@ -1415,6 +1429,7 @@ func GetProviderDisplayName(providerID string) string {
 		"openai-native": "OpenAI",
 		"xai": "X AI (Grok)",
 		"cerebras": "Cerebras",
+		"oca": "Oca",
 	}
 	
 	if name, exists := displayNames[providerID]; exists {

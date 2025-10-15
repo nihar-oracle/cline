@@ -223,6 +223,8 @@ func mapProviderStringToEnum(providerStr string) (cline.ApiProvider, bool) {
 		return cline.ApiProvider_OLLAMA, true
 	case "cerebras":
 		return cline.ApiProvider_CEREBRAS, true
+	case "oca":
+		return cline.ApiProvider_OCA, true
 	case "cline":
 		return cline.ApiProvider_CLINE, true
 	default:
@@ -252,6 +254,8 @@ func GetProviderIDForEnum(provider cline.ApiProvider) string {
 		return "ollama"
 	case cline.ApiProvider_CEREBRAS:
 		return "cerebras"
+	case cline.ApiProvider_OCA:
+		return "oca"
 	case cline.ApiProvider_CLINE:
 		return "cline"
 	default:

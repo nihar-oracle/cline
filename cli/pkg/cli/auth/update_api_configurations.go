@@ -131,6 +131,13 @@ func GetProviderFields(provider cline.ApiProvider) (ProviderFields, error) {
 			ActModeModelIDField:  "actModeApiModelId",
 		}, nil
 
+	case cline.ApiProvider_OCA:
+		return ProviderFields{
+			APIKeyField:          "ocaApiKey",
+			PlanModeModelIDField: "planModeApiModelId",
+			ActModeModelIDField:  "actModeApiModelId",
+		}, nil
+
 	case cline.ApiProvider_CLINE:
 		return ProviderFields{
 			APIKeyField:                          "clineApiKey",

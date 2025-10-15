@@ -1,0 +1,13 @@
+./auth_cline_provider.go
+./auth_menu.go
+./auth_subscription.go
+./byo_quick_setup.go
+./models_byo.go
+./models_cline.go
+./models_list_fetch.go
+./models_list_static.go
+./providers_byo.go
+./providers_list.go
+./update_api_configurations.go
+./wizard_byo.go
+./wizard_byo_bedrock.go

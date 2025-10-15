@@ -1,0 +1,153 @@
+{
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"name": "Debug cline (interactive mode)",
+			"type": "go",
+			"request": "launch",
+			"mode": "debug",
+			"program": "${workspaceFolder}/cmd/cline",
+			"args": [],
+			"cwd": "${workspaceFolder}",
+			"console": "integratedTerminal",
+			"showLog": true,
+			"trace": "verbose",
+			"env": {
+				"CLINE_BIN_DIR": "${workspaceFolder}/bin",
+				"CLINE_ROOT_DIR": "${workspaceFolder}/../dist-standalone"
+			}
+		},
+		{
+			"name": "Debug cline (with custom prompt)",
+			"type": "go",
+			"request": "launch",
+			"mode": "debug",
+			"program": "${workspaceFolder}/cmd/cline",
+			"args": [
+				"${input:userPrompt}"
+			],
+			"cwd": "${workspaceFolder}",
+			"console": "integratedTerminal",
+			"showLog": true,
+			"trace": "verbose",
+			"env": {
+				"CLINE_BIN_DIR": "${workspaceFolder}/bin",
+				"CLINE_ROOT_DIR": "${workspaceFolder}/../dist-standalone"
+			}
+		},
+		{
+			"name": "Debug cline (version)",
+			"type": "go",
+			"request": "launch",
+			"mode": "debug",
+			"program": "${workspaceFolder}/cmd/cline",
+			"args": [
+				"version"
+			],
+			"cwd": "${workspaceFolder}",
+			"console": "integratedTerminal",
+			"showLog": true,
+			"env": {
+				"CLINE_BIN_DIR": "${workspaceFolder}/bin",
+				"CLINE_ROOT_DIR": "${workspaceFolder}/../dist-standalone"
+			}
+		},
+		{
+			"name": "Debug cline (auth)",
+			"type": "go",
+			"request": "launch",
+			"mode": "debug",
+			"program": "${workspaceFolder}/cmd/cline",
+			"args": [
+				"auth"
+			],
+			"cwd": "${workspaceFolder}",
+			"console": "integratedTerminal",
+			"showLog": true,
+			"env": {
+				"CLINE_BIN_DIR": "${workspaceFolder}/bin",
+				"CLINE_ROOT_DIR": "${workspaceFolder}/../dist-standalone"
+			}
+		},
+		{
+			"name": "Debug cline (config)",
+			"type": "go",
+			"request": "launch",
+			"mode": "debug",
+			"program": "${workspaceFolder}/cmd/cline",
+			"args": [
+				"config"
+			],
+			"cwd": "${workspaceFolder}",
+			"console": "integratedTerminal",
+			"showLog": true,
+			"env": {
+				"CLINE_BIN_DIR": "${workspaceFolder}/bin",
+				"CLINE_ROOT_DIR": "${workspaceFolder}/../dist-standalone"
+			}
+		},
+		{
+			"name": "Debug cline-host",
+			"type": "go",
+			"request": "launch",
+			"mode": "debug",
+			"program": "${workspaceFolder}/cmd/cline-host",
+			"args": [],
+			"cwd": "${workspaceFolder}",
+			"console": "integratedTerminal",
+			"showLog": true,
+			"trace": "verbose"
+		},
+		{
+			"name": "Debug cline-host (verbose)",
+			"type": "go",
+			"request": "launch",
+			"mode": "debug",
+			"program": "${workspaceFolder}/cmd/cline-host",
+			"args": [
+				"--verbose"
+			],
+			"cwd": "${workspaceFolder}",
+			"console": "integratedTerminal",
+			"showLog": true,
+			"trace": "verbose"
+		},
+		{
+			"name": "Debug cline-host (custom port)",
+			"type": "go",
+			"request": "launch",
+			"mode": "debug",
+			"program": "${workspaceFolder}/cmd/cline-host",
+			"args": [
+				"--port",
+				"${input:hostPort}",
+				"--verbose"
+			],
+			"cwd": "${workspaceFolder}",
+			"console": "integratedTerminal",
+			"showLog": true,
+			"trace": "verbose"
+		},
+		{
+			"name": "Attach to Process",
+			"type": "go",
+			"request": "attach",
+			"mode": "local",
+			"processId": "${command:pickProcess}"
+		}
+	],
+	"inputs": [
+		{
+			"id": "userPrompt",
+			"type": "promptString",
+			"description": "Enter the prompt for Cline:",
+			"default": "Create a hello world program"
+		},
+		{
+			"id": "hostPort",
+			"type": "promptString",
+			"description": "Enter the port for cline-host:",
+			"default": "51052"
+		}
+	]
+}

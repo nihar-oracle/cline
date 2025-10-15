@@ -254,6 +254,25 @@ func startClineHost(hostPort, corePort int) (*exec.Cmd, error) {
 	binDir := path.Dir(execPath)
 	clineHostPath := path.Join(binDir, "cline-host")
 
+	// If cline-host doesn't exist (e.g., during debugging), check environment variable or workspace bin
+	if _, err := os.Stat(clineHostPath); os.IsNotExist(err) {
+		// Check for CLINE_BIN_DIR environment variable (useful for debugging)
+		if envBinDir := os.Getenv("CLINE_BIN_DIR"); envBinDir != "" {
+			clineHostPath = path.Join(envBinDir, "cline-host")
+		} else {
+			// Fallback: assume we're in a dev environment, look for bin/ in workspace
+			// Try going up from cmd/cline/ to workspace root
+			workspaceRoot := path.Dir(path.Dir(binDir))
+			clineHostPath = path.Join(workspaceRoot, "bin", "cline-host")
+		}
+
+		// Final check if cline-host exists
+		if _, err := os.Stat(clineHostPath); os.IsNotExist(err) {
+			return nil, fmt.Errorf("cline-host binary not found at %s (tried: %s, CLINE_BIN_DIR=%s)",
+				clineHostPath, path.Join(binDir, "cline-host"), os.Getenv("CLINE_BIN_DIR"))
+		}
+	}
+
 	// Start the cline-host process
 	cmd := exec.Command(clineHostPath,
 		"--verbose",
@@ -376,6 +395,50 @@ func startClineCore(corePort, hostPort int) (*exec.Cmd, error) {
 	installDir := path.Dir(binDir)
 	nodePath := path.Join(binDir, "node")
 	clineCorePath := path.Join(installDir, "cline-core.js")
+
+	// If node or cline-core.js doesn't exist (e.g., during debugging), check environment variables or workspace
+	if _, err := os.Stat(nodePath); os.IsNotExist(err) {
+		if envBinDir := os.Getenv("CLINE_BIN_DIR"); envBinDir != "" {
+			nodePath = path.Join(envBinDir, "node")
+		} else {
+			// Fallback: assume we're in a dev environment
+			workspaceRoot := path.Dir(path.Dir(binDir))
+			nodePath = path.Join(workspaceRoot, "bin", "node")
+		}
+	}
+
+	if _, err := os.Stat(clineCorePath); os.IsNotExist(err) {
+		if envRootDir := os.Getenv("CLINE_ROOT_DIR"); envRootDir != "" {
+			clineCorePath = path.Join(envRootDir, "cline-core.js")
+			installDir = envRootDir
+		} else {
+			// Fallback: assume we're in a dev environment, look in dist-standalone or parent directory
+			workspaceRoot := path.Dir(path.Dir(binDir))
+			parentRoot := path.Dir(workspaceRoot) // Go up from cli/ to project root
+
+			// Try dist-standalone first
+			distPath := path.Join(parentRoot, "dist-standalone", "cline-core.js")
+			if _, err := os.Stat(distPath); err == nil {
+				clineCorePath = distPath
+				installDir = path.Join(parentRoot, "dist-standalone")
+			} else {
+				// Try parent directory
+				parentPath := path.Join(parentRoot, "cline-core.js")
+				if _, err := os.Stat(parentPath); err == nil {
+					clineCorePath = parentPath
+					installDir = parentRoot
+				}
+			}
+		}
+	}
+
+	// Final check if critical files exist
+	if _, err := os.Stat(nodePath); os.IsNotExist(err) {
+		return nil, fmt.Errorf("node binary not found at %s (install with: npm run download-node && copy to cli/bin/)", nodePath)
+	}
+	if _, err := os.Stat(clineCorePath); os.IsNotExist(err) {
+		return nil, fmt.Errorf("cline-core.js not found at %s (build with: npm run compile-standalone)", clineCorePath)
+	}
 
 	// Create logs directory in ~/.cline/logs
 	logsDir := path.Join(Config.ConfigPath, "logs")
