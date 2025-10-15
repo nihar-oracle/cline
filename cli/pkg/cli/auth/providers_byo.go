@@ -14,7 +14,7 @@ type BYOProviderOption struct {
 }
 
 // GetBYOProviderList returns the list of supported BYO providers for CLI configuration.
-// This list excludes Cline provider which is handled separately.
+// This list excludes Cline and OCA providers which are handled separately with special authentication flows.
 func GetBYOProviderList() []BYOProviderOption {
 	return []BYOProviderOption{
 		{Name: "Anthropic", Provider: cline.ApiProvider_ANTHROPIC},
@@ -26,7 +26,6 @@ func GetBYOProviderList() []BYOProviderOption {
 		{Name: "Google Gemini", Provider: cline.ApiProvider_GEMINI},
 		{Name: "Ollama", Provider: cline.ApiProvider_OLLAMA},
 		{Name: "Cerebras", Provider: cline.ApiProvider_CEREBRAS},
-		{Name: "Oracle Code Assist", Provider: cline.ApiProvider_OCA},
 	}
 }
 

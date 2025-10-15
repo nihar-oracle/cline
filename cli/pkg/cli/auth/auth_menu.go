@@ -20,8 +20,10 @@ type AuthAction string
 
 const (
 	AuthActionClineLogin         AuthAction = "cline_login"
+	AuthActionOCALogin           AuthAction = "oca_login"
 	AuthActionBYOSetup           AuthAction = "provider_setup"
 	AuthActionChangeClineModel   AuthAction = "change_cline_model"
+	AuthActionChangeOCAModel     AuthAction = "change_oca_model"
 	AuthActionSelectOrganization AuthAction = "select_organization"
 	AuthActionSelectProvider     AuthAction = "select_provider"
 	AuthActionExit               AuthAction = "exit_wizard"
@@ -94,8 +96,9 @@ func getAuthInstanceAddress(ctx context.Context) string {
 
 // HandleAuthMenuNoArgs prepares the auth menu when no arguments are provided
 func HandleAuthMenuNoArgs(ctx context.Context) error {
-	// Check if Cline is authenticated
+	// Check if Cline and OCA are authenticated
 	isClineAuth := IsAuthenticated(ctx)
+	isOCAAuth := IsOCAAuthenticated(ctx)
 
 	// Get current provider config for display
 	var currentProvider string
@@ -109,7 +112,7 @@ func HandleAuthMenuNoArgs(ctx context.Context) error {
 		}
 	}
 
-	// Fetch organizations if authenticated
+	// Fetch organizations if Cline authenticated
 	var hasOrganizations bool
 	if isClineAuth {
 		if client, err := global.GetDefaultClient(ctx); err == nil {
@@ -119,7 +122,7 @@ func HandleAuthMenuNoArgs(ctx context.Context) error {
 		}
 	}
 
-	action, err := ShowAuthMenuWithStatus(isClineAuth, hasOrganizations, currentProvider, currentModel)
+	action, err := ShowAuthMenuWithStatus(isClineAuth, isOCAAuth, hasOrganizations, currentProvider, currentModel)
 	if err != nil {
 		return err
 	}
@@ -127,10 +130,14 @@ func HandleAuthMenuNoArgs(ctx context.Context) error {
 	switch action {
 	case AuthActionClineLogin:
 		return HandleClineAuth(ctx)
+	case AuthActionOCALogin:
+		return HandleOCAAuth(ctx)
 	case AuthActionBYOSetup:
 		return HandleAPIProviderSetup(ctx)
 	case AuthActionChangeClineModel:
 		return HandleChangeClineModel(ctx)
+	case AuthActionChangeOCAModel:
+		return HandleChangeOCAModel(ctx)
 	case AuthActionSelectOrganization:
 		return HandleSelectOrganization(ctx)
 	case AuthActionSelectProvider:
@@ -142,54 +149,67 @@ func HandleAuthMenuNoArgs(ctx context.Context) error {
 	}
 }
 
-// ShowAuthMenuWithStatus displays the main auth menu with Cline + provider status
-func ShowAuthMenuWithStatus(isClineAuthenticated bool, hasOrganizations bool, currentProvider, currentModel string) (AuthAction, error) {
+// ShowAuthMenuWithStatus displays the main auth menu with Cline + OCA + provider status
+func ShowAuthMenuWithStatus(isClineAuthenticated bool, isOCAAuthenticated bool, hasOrganizations bool, currentProvider, currentModel string) (AuthAction, error) {
 	var action AuthAction
 	var options []huh.Option[AuthAction]
 
 	// Build menu options based on authentication status
+	// Add Cline-specific options
 	if isClineAuthenticated {
-		options = []huh.Option[AuthAction]{
-			huh.NewOption("Change Cline model", AuthActionChangeClineModel),
-		}
+		options = append(options, huh.NewOption("Change Cline model", AuthActionChangeClineModel))
 
 		// Add organization selection if user has organizations
 		if hasOrganizations {
 			options = append(options, huh.NewOption("Select organization", AuthActionSelectOrganization))
 		}
 
+		options = append(options, huh.NewOption("Sign out of Cline", AuthActionClineLogin))
+	} else {
+		options = append(options, huh.NewOption("Authenticate with Cline account", AuthActionClineLogin))
+	}
+
+	// Add OCA-specific options
+	if isOCAAuthenticated {
 		options = append(options,
-			huh.NewOption("Sign out of Cline", AuthActionClineLogin),
-			huh.NewOption("Select active provider (Cline or BYO)", AuthActionSelectProvider),
-			huh.NewOption("Configure API provider", AuthActionBYOSetup),
-			huh.NewOption("Exit authorization wizard", AuthActionExit),
+			huh.NewOption("Change OCA model", AuthActionChangeOCAModel),
+			huh.NewOption("Sign out of Oracle Code Assist", AuthActionOCALogin),
 		)
 	} else {
-		options = []huh.Option[AuthAction]{
-			huh.NewOption("Authenticate with Cline account", AuthActionClineLogin),
-			huh.NewOption("Select active provider (Cline or BYO)", AuthActionSelectProvider),
-			huh.NewOption("Configure API provider", AuthActionBYOSetup),
-			huh.NewOption("Exit authorization wizard", AuthActionExit),
-		}
+		options = append(options, huh.NewOption("Authenticate with Oracle Code Assist", AuthActionOCALogin))
 	}
+
+	// Add common options
+	options = append(options,
+		huh.NewOption("Select active provider", AuthActionSelectProvider),
+		huh.NewOption("Configure API provider", AuthActionBYOSetup),
+		huh.NewOption("Exit authorization wizard", AuthActionExit),
+	)
 
 	// Determine menu title based on status
 	var title string
 
-	// Always show Cline authentication status
+	// Show Cline authentication status
 	if isClineAuthenticated {
 		title = "Cline Account: \033[32m✓\033[0m Authenticated\n"
 	} else {
 		title = "Cline Account: \033[31m✗\033[0m Not authenticated\n"
 	}
 
-	// Show active provider and model if configured (regardless of Cline auth status)
+	// Show OCA authentication status
+	if isOCAAuthenticated {
+		title += "Oracle Code Assist: \033[32m✓\033[0m Authenticated\n"
+	} else {
+		title += "Oracle Code Assist: \033[31m✗\033[0m Not authenticated\n"
+	}
+
+	// Show active provider and model if configured
 	// ANSI color codes: Normal intensity = \033[22m, White = \033[37m, Reset = \033[0m
 	if currentProvider != "" && currentModel != "" {
 		title += fmt.Sprintf("Active Provider: \033[22m\033[37m%s\033[0m\nActive Model: \033[22m\033[37m%s\033[0m\n", currentProvider, currentModel)
 	}
 
-	// Always end with a huh?
+	// Always end with question
 	title += "\nWhat would you like to do?"
 
 	form := huh.NewForm(
@@ -282,6 +302,10 @@ func HandleSelectProvider(ctx context.Context) error {
 	if selectedProvider == cline.ApiProvider_CLINE {
 		// Configure Cline as the active provider
 		return SelectClineModel(ctx, manager)
+	} else if selectedProvider == cline.ApiProvider_OCA {
+		// Configure OCA as the active provider
+		// Need to get or select OCA mode for model fetching
+		return HandleChangeOCAModel(ctx)
 	} else {
 		// Switch to the selected BYO provider
 		return SwitchToBYOProvider(ctx, manager, selectedProvider)

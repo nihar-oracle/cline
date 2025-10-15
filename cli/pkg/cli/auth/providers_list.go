@@ -331,6 +331,8 @@ func getProviderDisplayName(provider cline.ApiProvider) string {
 		return "Ollama"
 	case cline.ApiProvider_CEREBRAS:
 		return "Cerebras"
+	case cline.ApiProvider_OCA:
+		return "Oracle Code Assist"
 	case cline.ApiProvider_CLINE:
 		return "Cline (Official)"
 	default:

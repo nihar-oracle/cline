@@ -46,6 +46,9 @@ func updateApiConfigurationPartial(ctx context.Context, manager *task.Manager, r
 // ProviderFields defines all the field names associated with a specific provider
 type ProviderFields struct {
 	APIKeyField            string // API key field name (e.g., "apiKey", "openAiApiKey")
+	BaseURLField           string // Base URL field name (optional, e.g., "ocaBaseUrl")
+	RefreshTokenField      string // Refresh token field name (optional, e.g., "ocaRefreshToken")
+	ModeField              string // Mode field name (optional, e.g., "ocaMode")
 	PlanModeModelIDField   string // Plan mode model ID field (e.g., "planModeApiModelId")
 	ActModeModelIDField    string // Act mode model ID field (e.g., "actModeApiModelId")
 	PlanModeModelInfoField string // Plan mode model info field (optional, empty if not applicable)
@@ -134,6 +137,9 @@ func GetProviderFields(provider cline.ApiProvider) (ProviderFields, error) {
 	case cline.ApiProvider_OCA:
 		return ProviderFields{
 			APIKeyField:          "ocaApiKey",
+			BaseURLField:         "ocaBaseUrl",
+			RefreshTokenField:    "ocaRefreshToken",
+			ModeField:            "ocaMode",
 			PlanModeModelIDField: "planModeApiModelId",
 			ActModeModelIDField:  "actModeApiModelId",
 		}, nil
@@ -157,9 +163,12 @@ func GetProviderFields(provider cline.ApiProvider) (ProviderFields, error) {
 // ProviderUpdatesPartial defines optional fields for partial provider updates
 // Uses pointers to distinguish between "not provided" and "set to empty"
 type ProviderUpdatesPartial struct {
-	ModelID   *string     // New model ID (optional)
-	APIKey    *string     // New API key (optional)
-	ModelInfo interface{} // New model info (optional, provider-specific)
+	ModelID      *string     // New model ID (optional)
+	APIKey       *string     // New API key (optional)
+	BaseURL      *string     // New base URL (optional, e.g., for OCA, Ollama)
+	RefreshToken *string     // New refresh token (optional, e.g., for OCA)
+	Mode         *string     // New mode (optional, e.g., "internal" or "external" for OCA)
+	ModelInfo    interface{} // New model info (optional, provider-specific)
 }
 
 // GetModelIDFieldName returns the appropriate model ID field name for a provider and mode.
@@ -189,7 +198,7 @@ func GetModelIDFieldName(provider cline.ApiProvider, mode string) (string, error
 // buildProviderFieldMask builds a list of camelCase field paths for the field mask.
 // When includeProviderEnums is true, the provider enum fields are included (for setting active provider).
 // When false, only the data fields are included (for configuring without activating).
-func buildProviderFieldMask(fields ProviderFields, includeAPIKey bool, includeModelID bool, includeModelInfo bool, includeProviderEnums bool) []string {
+func buildProviderFieldMask(fields ProviderFields, includeAPIKey bool, includeModelID bool, includeModelInfo bool, includeProviderEnums bool, includeBaseURL bool, includeRefreshToken bool, includeMode bool) []string {
 	var fieldPaths []string
 
 	// Include provider enums if requested (used when setting active provider)
@@ -204,6 +213,21 @@ func buildProviderFieldMask(fields ProviderFields, includeAPIKey bool, includeMo
 		if fields.APIKeyField == "awsAccessKey" {
 			fieldPaths = append(fieldPaths, "awsSecretKey")
 		}
+	}
+
+	// Add base URL field if requested and exists
+	if includeBaseURL && fields.BaseURLField != "" {
+		fieldPaths = append(fieldPaths, fields.BaseURLField)
+	}
+
+	// Add refresh token field if requested and exists
+	if includeRefreshToken && fields.RefreshTokenField != "" {
+		fieldPaths = append(fieldPaths, fields.RefreshTokenField)
+	}
+
+	// Add mode field if requested and exists
+	if includeMode && fields.ModeField != "" {
+		fieldPaths = append(fieldPaths, fields.ModeField)
 	}
 
 	// Add model ID fields if requested
@@ -250,8 +274,48 @@ func setAPIKeyField(apiConfig *cline.ModelsApiConfiguration, fieldName string, v
 		apiConfig.OllamaBaseUrl = value
 	case "cerebrasApiKey":
 		apiConfig.CerebrasApiKey = value
+	case "ocaApiKey":
+		apiConfig.OcaApiKey = value
 	case "clineApiKey":
 		apiConfig.ClineApiKey = value
+	}
+}
+
+// setBaseURLField sets the appropriate base URL field in the config based on the field name
+func setBaseURLField(apiConfig *cline.ModelsApiConfiguration, fieldName string, value *string) {
+	switch fieldName {
+	case "ocaBaseUrl":
+		apiConfig.OcaBaseUrl = value
+	case "ollamaBaseUrl":
+		apiConfig.OllamaBaseUrl = value
+	case "openAiBaseUrl":
+		apiConfig.OpenAiBaseUrl = value
+	case "geminiBaseUrl":
+		apiConfig.GeminiBaseUrl = value
+	case "liteLlmBaseUrl":
+		apiConfig.LiteLlmBaseUrl = value
+	case "anthropicBaseUrl":
+		apiConfig.AnthropicBaseUrl = value
+	case "requestyBaseUrl":
+		apiConfig.RequestyBaseUrl = value
+	case "lmStudioBaseUrl":
+		apiConfig.LmStudioBaseUrl = value
+	}
+}
+
+// setRefreshTokenField sets the appropriate refresh token field in the config
+func setRefreshTokenField(apiConfig *cline.ModelsApiConfiguration, fieldName string, value *string) {
+	switch fieldName {
+	case "ocaRefreshToken":
+		apiConfig.OcaRefreshToken = value
+	}
+}
+
+// setModeField sets the appropriate mode field in the config
+func setModeField(apiConfig *cline.ModelsApiConfiguration, fieldName string, value *string) {
+	switch fieldName {
+	case "ocaMode":
+		apiConfig.OcaMode = value
 	}
 }
 
@@ -308,7 +372,7 @@ func AddProviderPartial(ctx context.Context, manager *task.Manager, provider cli
 
 	// Build field mask including all fields we're setting (without provider enums)
 	includeModelInfo := fields.PlanModeModelInfoField != "" && modelInfo != nil
-	fieldPaths := buildProviderFieldMask(fields, true, true, includeModelInfo, false)
+	fieldPaths := buildProviderFieldMask(fields, true, true, includeModelInfo, false, false, false, false)
 
 	// Create field mask
 	fieldMask := &fieldmaskpb.FieldMask{Paths: fieldPaths}
@@ -346,12 +410,30 @@ func UpdateProviderPartial(ctx context.Context, manager *task.Manager, provider 
 
 	// Track what we're updating for field mask
 	includeAPIKey := updates.APIKey != nil
+	includeBaseURL := updates.BaseURL != nil
+	includeRefreshToken := updates.RefreshToken != nil
+	includeMode := updates.Mode != nil
 	includeModelID := updates.ModelID != nil
 	includeModelInfo := updates.ModelInfo != nil && fields.PlanModeModelInfoField != ""
 
 	// Update API key if provided
 	if updates.APIKey != nil {
 		setAPIKeyField(apiConfig, fields.APIKeyField, updates.APIKey)
+	}
+
+	// Update base URL if provided
+	if updates.BaseURL != nil && fields.BaseURLField != "" {
+		setBaseURLField(apiConfig, fields.BaseURLField, updates.BaseURL)
+	}
+
+	// Update refresh token if provided
+	if updates.RefreshToken != nil && fields.RefreshTokenField != "" {
+		setRefreshTokenField(apiConfig, fields.RefreshTokenField, updates.RefreshToken)
+	}
+
+	// Update mode if provided
+	if updates.Mode != nil && fields.ModeField != "" {
+		setModeField(apiConfig, fields.ModeField, updates.Mode)
 	}
 
 	// Update model ID if provided
@@ -374,8 +456,15 @@ func UpdateProviderPartial(ctx context.Context, manager *task.Manager, provider 
 		}
 	}
 
+	// Update OCA model info if provided (OCA doesn't use provider-specific model info fields currently)
+	if updates.ModelInfo != nil && provider == cline.ApiProvider_OCA {
+		// OCA model info is stored in the generic model info structure
+		// The model info is already set via the modelID field
+		// This is a placeholder for future OCA-specific model info handling
+	}
+
 	// Build field mask for only the fields being updated
-	fieldPaths := buildProviderFieldMask(fields, includeAPIKey, includeModelID, includeModelInfo, setAsActive)
+	fieldPaths := buildProviderFieldMask(fields, includeAPIKey, includeModelID, includeModelInfo, setAsActive, includeBaseURL, includeRefreshToken, includeMode)
 
 	// Create field mask
 	fieldMask := &fieldmaskpb.FieldMask{Paths: fieldPaths}
